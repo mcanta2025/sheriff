@@ -22,18 +22,11 @@
   <aside id="tiles-col" class="tiles-stack"></aside>
 
   <!-- Colonne droite : tableau temps réel -->
-  <section class="card table-card">
-    <h3>Dispatch en temps réel</h3>
-    <table class="table" id="etat-table">
-      <thead>
-        <tr>
-          <th>Équipe</th><th>Conducteur</th><th>Radio</th>
-          <th>C1</th><th>C2</th><th>Véhicule</th><th>Statut</th><th>Notes</th><th>MAJ</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </section>
+ <!-- Colonne droite : organigramme -->
+<section class="card table-card">
+  <h3>Dispatch en temps réel</h3>
+  <div id="orga" class="orga-grid"></div>
+</section>
 </main>
 
 <footer>© Sheriff’s Department — Saint-Georges</footer>
@@ -42,3 +35,4 @@
 <script type="module" src="dispatch.js"></script>
 </body>
 </html>
+
