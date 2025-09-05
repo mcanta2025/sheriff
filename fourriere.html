@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Central — TITRE</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header>
+  <div class="brand"><a href="index.html"><img src="badge.png" alt="badge"></a><div class="title">SAINT-GEORGES SHERIFF</div></div>
+  <div class="spread"><span id="clock" class="pill">--:--:--</span><span id="who" class="pill">Non connecté</span>
+    <a href="index.html" class="btn ghost">← Accueil</a>
+    <button id="btn-logout" class="btn gold hidden">Déconnexion</button>
+  </div>
+</header>
+<main class="container">
+  <h2 class="badge">FOURRIERE</h2>
+  <div class="card">À implémenter…</div>
+</main>
+<footer>© Sheriff’s Department — Saint-Georges</footer>
+<script type="module">
+  import { startClock, bindHeaderAuth, requireAuthOrRedirect } from './common.js';
+  startClock(); await bindHeaderAuth(); await requireAuthOrRedirect();
+</script>
+</body>
+</html>
