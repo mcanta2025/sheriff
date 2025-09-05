@@ -60,6 +60,31 @@ supabase.channel("rt-sessions")
 // Init
 state.raw = await fetchCompteurs();
 render();
+function render(){
+  const tbody = document.querySelector('#tbl-compteurs tbody');
+  tbody.innerHTML = "";
+  const q = state.q.trim().toLowerCase();
+
+  state.raw
+    .filter(e=>{
+      if(!q) return true;
+      const hay = [e.prenom_nom||"", e.matricule||"", e.grade||""].join(" ").toLowerCase();
+      return hay.includes(q);
+    })
+    .forEach(e=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${e.grade || ""}</td>
+        <td>${e.matricule || ""}</td>
+        <td>${e.prenom_nom || ""}</td>
+        <td>${formatDuration(e.secondes_semaine)}</td>
+        <td>${formatDuration(e.secondes_total)}</td>
+        <td class="${e.actif ? 'actif' : 'inactif'}">${e.actif ? "✔" : "✖"}</td>
+        <td>${e.derniere_maj ? new Date(e.derniere_maj).toLocaleString() : ""}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+}
 
 // Recherche
 document.getElementById('q').addEventListener('input', (e)=>{
