@@ -1,98 +1,222 @@
-<section class="card">
-  <h2>Liste des infractions</h2>
-  <input id="search" type="text" placeholder="🔍 Rechercher..." style="margin-bottom:10px;width:100%" />
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculateur d'infractions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="styles.css" rel="stylesheet" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="common.js"></script> <!-- ton client Supabase et helpers -->
 
-  <table class="table" id="infractions-table">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Catégorie</th>
-        <th>Infraction</th>
-        <th>Classification</th>
-        <th>Amende</th>
-        <th>Fourrière (j)</th>
-        <th>GAV</th>
-        <th>Audition</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</section>
+  <style>
+    /* Un petit style local au cas où */
+    .pill { padding:2px 8px; border-radius:999px; font-size:12px; display:inline-block }
+    .pill.green { background:rgba(0,200,0,.15); color:#c6ffcf; border:1px solid rgba(0,200,0,.25)}
+    .pill.orange{ background:rgba(255,165,0,.15); color:#ffd9a6; border:1px solid rgba(255,165,0,.25)}
+    .pill.red   { background:rgba(200,0,0,.15); color:#ffb3b3; border:1px solid rgba(200,0,0,.25)}
+    .inf-card { cursor:pointer; transition:transform .05s ease }
+    .inf-card:hover { transform:translateY(-1px) }
+    .selected-line { display:flex; justify-content:space-between; gap:10px; margin:6px 0 }
+    .selected-line small { opacity:.8 }
+    .right { text-align:right }
+    .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="spread container">
+    <div class="brand">
+      <img src="badge.png" alt="" style="height:32px">
+      <div class="title">SAINT-GEORGES SHERIFF — Calculateur</div>
+    </div>
+    <div class="pill">Outil calculateur</div>
+  </header>
 
-<aside class="card">
-  <h2>Sélection en cours</h2>
-  <button class="btn gold" id="btn-reset">Vider la sélection</button>
-  <div id="selection"></div>
-  <div id="totaux"></div>
-</aside>
+  <main class="container grid" style="grid-template-columns: 1.15fr .85fr; gap:20px">
+    <!-- Colonne gauche : recherche + liste -->
+    <section class="card">
+      <div class="spread" style="margin-bottom:10px">
+        <h2>Recherche d'infractions</h2>
+      </div>
 
-<script>
-const db = window.supabase;
-let infractions = [];
-let selection = [];
+      <!-- INPUT visible (id "search") + alias caché (id "calc-search") -->
+      <div class="row" style="grid-template-columns:1fr auto">
+        <input id="search" type="text" placeholder="🔍 Rechercher (infraction, catégorie, classification)..." />
+        <input id="calc-search" type="text" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none" aria-hidden="true" />
+      </div>
 
-const tableBody = document.querySelector("#infractions-table tbody");
-const searchInput = document.getElementById("search");
+      <div class="tiles" id="calc-list">
+        <!-- wrapper alias -> vrai conteneur -->
+        <div id="infractions-list" class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:16px"></div>
+      </div>
+    </section>
 
-async function loadInfractions() {
-  const { data, error } = await db.from("calculateur")
-    .select("id, category, infraction, classification, amende, garde_a_vue, audition, jour_fourriere")
-    .order("category");
-  if (error) {
-    console.error(error);
-    return;
-  }
-  infractions = data;
-  renderTable(infractions);
-}
+    <!-- Colonne droite : sélection + totaux -->
+    <aside class="card">
+      <div class="spread" style="margin-bottom:10px">
+        <h2>Sélection en cours</h2>
+        <button class="btn gold" id="btn-reset">Vider la sélection</button>
+      </div>
 
-function renderTable(list) {
-  tableBody.innerHTML = "";
-  list.forEach(i => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><input type="checkbox" data-id="${i.id}"></td>
-      <td>${i.category}</td>
-      <td>${i.infraction}</td>
-      <td>${i.classification}</td>
-      <td>$${Number(i.amende).toLocaleString()}</td>
-      <td>${i.jour_fourriere}</td>
-      <td>${i.garde_a_vue}</td>
-      <td>${i.audition}</td>
-    `;
-    tr.querySelector("input").addEventListener("change", e => {
-      if (e.target.checked) selection.push(i);
-      else selection = selection.filter(x => x.id !== i.id);
-      renderSelection();
-    });
-    tableBody.appendChild(tr);
-  });
-}
+      <!-- alias -> vrai conteneur -->
+      <div id="calc-selection">
+        <div id="selection"></div>
+      </div>
 
-function renderSelection() {
-  const box = document.getElementById("selection");
-  const totaux = document.getElementById("totaux");
-  box.innerHTML = selection.map(s => `<div>${s.infraction} - $${s.amende}</div>`).join("") || "<em>Aucune sélection</em>";
+      <hr style="border:none;border-top:1px solid var(--line); margin:14px 0" />
 
-  const totalAmende = selection.reduce((sum,i)=>sum+i.amende,0);
-  const totalFourr = selection.reduce((sum,i)=>sum+i.jour_fourriere,0);
-  totaux.innerHTML = `<hr><b>Total :</b> $${totalAmende.toLocaleString()} — ${totalFourr} j fourrière`;
-}
+      <div id="calc-totaux">
+        <div id="totaux" class="grid" style="grid-template-columns:1fr 1fr">
+          <!-- totaux remplis par JS -->
+        </div>
+      </div>
+    </aside>
+  </main>
 
-searchInput.addEventListener("input", e => {
-  const q = e.target.value.toLowerCase();
-  renderTable(infractions.filter(i =>
-    i.infraction.toLowerCase().includes(q) ||
-    i.category.toLowerCase().includes(q) ||
-    i.classification.toLowerCase().includes(q)
-  ));
-});
+  <footer>© Sheriff’s Department • Saint-Georges</footer>
 
-document.getElementById("btn-reset").addEventListener("click", ()=>{
-  selection = [];
-  renderSelection();
-  document.querySelectorAll("#infractions-table input[type=checkbox]").forEach(c => c.checked = false);
-});
+  <script>
+    // Si ton projet a déjà un initialiseur global (ex: window.initCalculator),
+    // on ne fait rien pour éviter les conflits.
+    if (!window.initCalculator) {
+      (function(){
+        const db = window.supabase; // fourni par common.js
+        let infractions = [];
+        let selection = [];
 
-loadInfractions();
-</script>
+        const el = {
+          searchA: document.getElementById('search'),
+          searchB: document.getElementById('calc-search'), // alias
+          list:    document.getElementById('infractions-list'),
+          selWrap: document.getElementById('selection'),
+          totaux:  document.getElementById('totaux'),
+          reset:   document.getElementById('btn-reset')
+        };
+
+        // Sync des deux inputs si un autre script écoute "calc-search"
+        el.searchA.addEventListener('input', () => {
+          if (el.searchB.value !== el.searchA.value) {
+            el.searchB.value = el.searchA.value;
+            el.searchB.dispatchEvent(new Event('input', { bubbles:true }));
+          }
+          filterAndRender();
+        });
+        el.searchB.addEventListener('input', () => {
+          if (el.searchA.value !== el.searchB.value) {
+            el.searchA.value = el.searchB.value;
+            filterAndRender();
+          }
+        });
+
+        el.reset.addEventListener('click', () => { selection = []; renderSelection(); });
+
+        function badge(classification) {
+          const c = (classification || '').toUpperCase();
+          if (c === 'CONTRAVENTION') return '<span class="pill green">Contravention</span>';
+          if (c === 'DELIT')         return '<span class="pill orange">Délit</span>';
+          if (c === 'CRIME')         return '<span class="pill red">Crime</span>';
+          return `<span class="pill">${classification||''}</span>`;
+        }
+
+        function renderList(arr) {
+          el.list.innerHTML = '';
+          if (!arr || !arr.length) {
+            el.list.innerHTML = '<div class="muted">Aucune infraction trouvée.</div>';
+            return;
+          }
+          for (const it of arr) {
+            const card = document.createElement('div');
+            card.className = 'card inf-card';
+            card.innerHTML = `
+              <div class="spread" style="align-items:flex-start">
+                <div style="max-width:78%">
+                  <div style="font-weight:700; margin-bottom:4px">${it.infraction}</div>
+                  <div class="muted small" style="margin-bottom:6px">${it.category}</div>
+                  ${badge(it.classification)}
+                </div>
+                <div class="right">
+                  <div><b>$${Number(it.amende||0).toLocaleString()}</b></div>
+                  <small class="muted">${Number(it.jour_fourriere||0)} jour(s) fourrière</small>
+                </div>
+              </div>
+            `;
+            card.addEventListener('click', () => { selection.push(it); renderSelection(); });
+            el.list.appendChild(card);
+          }
+        }
+
+        function renderSelection() {
+          el.selWrap.innerHTML = '';
+          if (!selection.length) {
+            el.selWrap.innerHTML = '<div class="muted small">Aucune sélection.</div>';
+          } else {
+            selection.forEach((it, idx) => {
+              const line = document.createElement('div');
+              line.className = 'selected-line';
+              line.innerHTML = `
+                <div>
+                  <div><b>${it.infraction}</b></div>
+                  <small class="muted">${it.category}</small>
+                </div>
+                <div class="right">
+                  <div><b>$${Number(it.amende||0).toLocaleString()}</b></div>
+                  <small class="muted">${Number(it.jour_fourriere||0)} j</small><br>
+                  <button class="btn small ghost" data-idx="${idx}">Retirer</button>
+                </div>
+              `;
+              line.querySelector('button').addEventListener('click', (e) => {
+                const i = Number(e.currentTarget.dataset.idx);
+                selection.splice(i,1);
+                renderSelection();
+              });
+              el.selWrap.appendChild(line);
+            });
+          }
+
+          const totalAmende = selection.reduce((s,i)=>s + (Number(i.amende)||0), 0);
+          const totalFourr  = selection.reduce((s,i)=>s + (Number(i.jour_fourriere)||0), 0);
+
+          el.totaux.innerHTML = `
+            <div class="card">
+              <div class="muted small">Total amendes</div>
+              <div style="font-size:20px; font-weight:900">$${totalAmende.toLocaleString()}</div>
+            </div>
+            <div class="card">
+              <div class="muted small">Total fourrière</div>
+              <div style="font-size:20px; font-weight:900">${totalFourr} jour(s)</div>
+            </div>
+          `;
+        }
+
+        function filterAndRender() {
+          const q = (el.searchA.value || '').toLowerCase().trim();
+          if (!q) return renderList(infractions);
+          const out = infractions.filter(it =>
+            (it.infraction||'').toLowerCase().includes(q) ||
+            (it.category||'').toLowerCase().includes(q) ||
+            (it.classification||'').toLowerCase().includes(q)
+          );
+          renderList(out);
+        }
+
+        async function load() {
+          // Sélect simple; si RLS: lecture autorisée aux "authenticated"
+          const { data, error } = await db.from('calculateur')
+            .select('id, category, infraction, classification, amende, garde_a_vue, audition, jour_fourriere, peine_compl')
+            .order('category', { ascending: true })
+            .limit(2000);
+          if (error) {
+            console.error('Erreur chargement calculateur:', error);
+            el.list.innerHTML = `<div class="pill red">Erreur de chargement</div>`;
+            return;
+          }
+          infractions = data || [];
+          renderList(infractions);
+          renderSelection();
+        }
+
+        load();
+      })();
+    }
+  </script>
+</body>
+</html>
