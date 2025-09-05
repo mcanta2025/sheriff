@@ -1,86 +1,118 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Central — Calculateur</title>
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <meta charset="UTF-8">
+  <title>Calculateur d'infractions</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="common.js"></script> <!-- ✅ connexion et fonctions globales -->
+  <style>
+    .contravention { background: rgba(0, 200, 0, 0.1); }
+    .delit { background: rgba(255, 165, 0, 0.15); }
+    .crime { background: rgba(200, 0, 0, 0.15); }
+    .selected { border: 2px solid gold; margin: 4px 0; padding: 6px; }
+  </style>
 </head>
 <body>
-<header>
-  <div class="brand">
-    <a href="index.html"><img src="badge.png" alt="badge"></a>
-    <div class="title">SAINT-GEORGES SHERIFF</div>
-  </div>
-  <div class="spread">
-    <span id="clock" class="pill">--:--:--</span>
-    <span id="who" class="pill">Non connecté</span>
-    <a href="index.html" class="btn ghost">← Accueil</a>
-    <button id="btn-logout" class="btn gold hidden">Déconnexion</button>
-  </div>
-</header>
+  <header>
+    <h1>Calculateur des Infractions</h1>
+  </header>
 
-<main class="container">
-  <!-- Résumé sélection -->
-  <section class="card" id="resume-card">
-    <div class="spread" style="gap:12px; align-items:flex-start">
-      <div>
-        <h3>Résumé</h3>
-        <div class="resume-grid">
-          <div class="resume-box">
-            <div class="resume-label">Total amendes</div>
-            <div id="resume-amende" class="resume-value">$0</div>
-          </div>
-          <div class="resume-box">
-            <div class="resume-label">Jours fourrière</div>
-            <div id="resume-fourriere" class="resume-value">0</div>
-          </div>
-          <div class="resume-box">
-            <div class="resume-label">Garde à vue</div>
-            <div id="resume-gav" class="resume-value badge">NON</div>
-          </div>
-          <div class="resume-box">
-            <div class="resume-label">Audition</div>
-            <div id="resume-audition" class="resume-value badge">NON</div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <button id="btn-clear" class="btn">Vider la sélection</button>
-      </div>
-    </div>
+  <main class="container grid grid-2">
+    <!-- 🔎 Recherche -->
+    <section class="card">
+      <h2>Recherche d'infractions</h2>
+      <input id="search" type="text" placeholder="🔍 Rechercher une infraction..." />
+      <div id="infractions-list"></div>
+    </section>
 
-    <div id="selection-list" class="selection-list"></div>
-  </section>
+    <!-- ✅ Sélection -->
+    <section class="card">
+      <h2>Sélection en cours</h2>
+      <div id="selection"></div>
+      <div id="totaux"></div>
+      <button class="btn gold" onclick="resetSelection()">Vider la sélection</button>
+    </section>
+  </main>
 
-  <!-- Recherche / filtres -->
-  <section class="card">
-    <div class="filters">
-      <input id="q" class="input" placeholder="Rechercher (infraction, mots-clés…)" />
-      <select id="filter-category">
-        <option value="">Toutes catégories</option>
-      </select>
-      <select id="filter-class">
-        <option value="">Toutes classifications</option>
-        <option value="CONTRAVENTION">CONTRAVENTION</option>
-        <option value="DÉLIT">DÉLIT</option>
-        <option value="DELIT">DÉLIT</option>
-        <option value="CRIME">CRIME</option>
-      </select>
-    </div>
+  <script>
+    let infractions = [];
+    let selection = [];
 
-    <!-- Liste d'infractions -->
-    <div id="list-infractions" class="infractions-list"></div>
-  </section>
-</main>
+    // Charger les infractions depuis Supabase
+    async function loadInfractions() {
+      const { data, error } = await supabase.from("calculateur").select("*");
+      if (error) {
+        console.error("Erreur chargement infractions:", error);
+        return;
+      }
+      infractions = data;
+      renderInfractions(data);
+    }
 
-<footer>© Sheriff’s Department — Saint-Georges</footer>
+    // Affiche la liste
+    function renderInfractions(list) {
+      const container = document.getElementById("infractions-list");
+      container.innerHTML = "";
+      list.forEach(item => {
+        const div = document.createElement("div");
+        div.className = `${item.classification.toLowerCase()} card`;
+        div.innerHTML = `
+          <b>${item.infraction}</b><br>
+          <small>Catégorie: ${item.category}</small><br>
+          <small>Amende: $${item.amende.toLocaleString()}</small><br>
+          <small>Fourrière: ${item.jour_fourriere} jour(s)</small><br>
+        `;
+        div.onclick = () => addToSelection(item);
+        container.appendChild(div);
+      });
+    }
 
-<script type="module" src="common.js"></script>
+    // Ajouter une infraction
+    function addToSelection(item) {
+      selection.push(item);
+      renderSelection();
+    }
 
-<!-- (Optionnel) Fallback local : crée un fichier calculateur_data.js avec window.INFRACTIONS = [ ... ] -->
-<script src="calculateur_data.js"></script>
+    // Affiche la sélection
+    function renderSelection() {
+      const container = document.getElementById("selection");
+      container.innerHTML = "";
+      selection.forEach(item => {
+        const div = document.createElement("div");
+        div.className = `selected ${item.classification.toLowerCase()}`;
+        div.innerHTML = `<b>${item.infraction}</b> - $${item.amende.toLocaleString()}`;
+        container.appendChild(div);
+      });
 
-<script type="module" src="calculateur.js"></script>
+      const totalAmende = selection.reduce((sum, i) => sum + i.amende, 0);
+      const totalFourriere = selection.reduce((sum, i) => sum + i.jour_fourriere, 0);
+
+      document.getElementById("totaux").innerHTML = `
+        <p><b>Total Amendes:</b> $${totalAmende.toLocaleString()}</p>
+        <p><b>Total Fourrière:</b> ${totalFourriere} jours</p>
+      `;
+    }
+
+    // Reset sélection
+    function resetSelection() {
+      selection = [];
+      renderSelection();
+    }
+
+    // Filtrer en live
+    document.getElementById("search").addEventListener("input", (e) => {
+      const term = e.target.value.toLowerCase();
+      const filtered = infractions.filter(i =>
+        i.infraction.toLowerCase().includes(term) ||
+        i.category.toLowerCase().includes(term) ||
+        i.classification.toLowerCase().includes(term)
+      );
+      renderInfractions(filtered);
+    });
+
+    // Charger au démarrage
+    loadInfractions();
+  </script>
 </body>
 </html>
