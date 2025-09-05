@@ -45,3 +45,36 @@ h1,h2,h3{margin:6px 0 10px}
 @media(min-width:900px){.tiles{grid-template-columns:repeat(3,1fr)}}
 footer{padding:24px 16px;color:var(--muted);text-align:center}
 
+
+/* === Dispatch Layout compact === */
+.dispatch-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+}
+
+.equipe-tile {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.equipe-tile h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--gold);
+}
+.equipe-tile select,
+.equipe-tile textarea {
+  font-size: 13px;
+  padding: 4px 6px;
+  margin-bottom: 6px;
+}
+.equipe-tile textarea {min-height:40px}
+.equipe-tile button {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
