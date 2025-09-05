@@ -6,54 +6,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="styles.css" rel="stylesheet" />
 
-  <!-- Expose le client Supabase exporté par common.js -->
+  <!-- Expose le client Supabase exporté par common.js (qui reste inchangé) -->
   <script type="module">
     import { supabase } from "./common.js";
     window.supabase = supabase;
   </script>
-
-  <!--
-    ⚠️ Pas de styles agressifs ici.
-    Ajoute ces classes dans ton CSS existant si tu veux les affiner :
-      .table, .table-wrap, .td-right, .cat, .cat .ico
-  -->
 </head>
 <body>
-  <header class="spread container">
+  <header>
     <div class="brand">
-      <img src="badge.png" alt="" style="height:32px" />
+      <img src="badge.png" alt="" />
       <div class="title">SAINT-GEORGES SHERIFF — Calculateur</div>
     </div>
     <div class="pill">Outil calculateur</div>
   </header>
 
-  <main class="container grid" style="grid-template-columns: 1.15fr .85fr; gap:20px">
+  <main class="container grid" style="grid-template-columns: 1.15fr .85fr; gap:16px">
     <!-- Colonne gauche : recherche + liste -->
     <section class="card">
       <div class="spread" style="margin-bottom:10px">
         <h2>Recherche d'infractions</h2>
       </div>
 
-      <div class="row" style="grid-template-columns:1fr auto">
+      <div class="grid" style="grid-template-columns:1fr auto; align-items:center">
         <input id="search" type="text" placeholder="🔍 Rechercher (infraction, catégorie, classification)..." />
         <input id="calc-search" type="text" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none" aria-hidden="true" />
       </div>
 
-      <div id="infractions-list" class="table-wrap" style="margin-top:16px"></div>
+      <!-- Liste (tableau) -->
+      <div id="infractions-list" style="margin-top:12px"></div>
     </section>
 
     <!-- Colonne droite : sélection + totaux -->
-    <aside class="card">
+    <aside class="card table-card">
       <div class="spread" style="margin-bottom:10px">
         <h2>Sélection en cours</h2>
         <button class="btn gold" id="btn-reset">Vider la sélection</button>
       </div>
 
-      <div id="selection" class="table-wrap"></div>
+      <!-- Sélection (tableau) -->
+      <div id="selection"></div>
 
-      <hr style="border:none;border-top:1px solid var(--line); margin:14px 0" />
-
-      <div id="totaux" class="grid" style="grid-template-columns:1fr 1fr"></div>
+      <div class="resume-grid" style="margin-top:12px">
+        <div class="resume-box">
+          <div class="resume-label">Total amendes</div>
+          <div class="resume-value" id="total-amendes">$0</div>
+        </div>
+        <div class="resume-box">
+          <div class="resume-label">Total fourrière</div>
+          <div class="resume-value" id="total-fourriere">0 jour(s)</div>
+        </div>
+      </div>
     </aside>
   </main>
 
@@ -62,7 +65,7 @@
   <!-- Script applicatif (non-module) -->
   <script>
     (function(){
-      const db = window.supabase;            // vient de common.js (exposé plus haut)
+      const db = window.supabase;   // depuis common.js
       let infractions = [];
       let selection   = [];
 
@@ -71,36 +74,37 @@
         searchB: document.getElementById('calc-search'),
         list:    document.getElementById('infractions-list'),
         selWrap: document.getElementById('selection'),
-        totaux:  document.getElementById('totaux'),
+        tAmende: document.getElementById('total-amendes'),
+        tFour:   document.getElementById('total-fourriere'),
         reset:   document.getElementById('btn-reset')
       };
 
-      // --- helpers ---
-      function badge(classification) {
-        const c = String(classification || '').toUpperCase();
-        if (c === 'CONTRAVENTION') return '<span class="pill green">Contravention</span>';
-        if (c === 'DELIT')         return '<span class="pill orange">Délit</span>';
-        if (c === 'CRIME')         return '<span class="pill red">Crime</span>';
-        return `<span class="pill">${classification || ''}</span>`;
+      // === helpers UI ===
+      function money(n){ return `$${Number(n||0).toLocaleString()}`; }
+      function badgeClassification(c){
+        const up = String(c||'').toUpperCase();
+        if (up === 'CONTRAVENTION') return '<span class="badge badge-green">Contravention</span>';
+        if (up === 'DELIT')         return '<span class="badge badge-orange">Délit</span>';
+        if (up === 'CRIME')         return '<span class="badge badge-red">Crime</span>';
+        return `<span class="badge">${c||''}</span>`;
       }
-
-      function categoryIcon(category = "") {
+      function categoryIcon(category = ""){
         const c = category.toLowerCase();
-        if (c.includes('route') || c.includes('conduite')) return { ico: '🚗', label: category };
-        if (c.includes('vol')   || c.includes('braquage'))  return { ico: '🧤', label: category };
-        if (c.includes('agression') || c.includes('violence')) return { ico: '⚔️', label: category };
-        if (c.includes('stup') || c.includes('drog'))       return { ico: '💊', label: category };
-        if (c.includes('arme'))                             return { ico: '🔫', label: category };
-        if (c.includes('fraude') || c.includes('escro'))    return { ico: '🧾', label: category };
-        return { ico: '📘', label: category || 'Autre' };
+        if (c.includes('route') || c.includes('conduite')) return { ico:'🚗', label:category };
+        if (c.includes('vol')   || c.includes('braquage'))  return { ico:'🧤', label:category };
+        if (c.includes('agression') || c.includes('violence')) return { ico:'⚔️', label:category };
+        if (c.includes('stup') || c.includes('drog'))       return { ico:'💊', label:category };
+        if (c.includes('arme'))                             return { ico:'🔫', label:category };
+        if (c.includes('fraude') || c.includes('escro'))    return { ico:'🧾', label:category };
+        return { ico:'📘', label: category || 'Autre' };
       }
       function catBadge(category){
-        const { ico, label } = categoryIcon(category);
-        // classes neutres que tu pourras styler dans ton CSS
-        return `<span class="cat"><span class="ico">${ico}</span><span>${label || ''}</span></span>`;
+        const {ico,label} = categoryIcon(category);
+        // on réutilise ta classe .sel-pill pour un “badge” catégorie
+        return `<span class="sel-pill">${ico} ${label||''}</span>`;
       }
 
-      // --- écouteurs de recherche ---
+      // === recherche (deux inputs synchro au cas où) ===
       el.searchA.addEventListener('input', () => {
         if (el.searchB.value !== el.searchA.value) {
           el.searchB.value = el.searchA.value;
@@ -117,27 +121,26 @@
 
       el.reset.addEventListener('click', () => { selection = []; renderSelection(); });
 
-      // --- rendu : LISTE en tableau ---
-      function renderList(arr) {
-        const container = el.list;
-        container.innerHTML = '';
-        if (!arr || !arr.length) {
-          container.innerHTML = '<div class="muted">Aucune infraction trouvée.</div>';
+      // === LISTE : tableau ===
+      function renderList(arr){
+        el.list.innerHTML = '';
+        if (!arr?.length){
+          el.list.innerHTML = '<div class="muted">Aucune infraction trouvée.</div>';
           return;
         }
 
         const table = document.createElement('table');
         table.className = 'table';
-        table.setAttribute('aria-label', 'Liste des infractions');
+        table.setAttribute('aria-label','Liste des infractions');
         table.innerHTML = `
           <thead>
             <tr>
               <th>Infraction</th>
               <th>Catégorie</th>
               <th>Classification</th>
-              <th class="td-right">Amende</th>
-              <th class="td-right">Fourrière</th>
-              <th class="td-right"></th>
+              <th style="text-align:right">Amende</th>
+              <th style="text-align:right">Fourrière</th>
+              <th style="text-align:right"></th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -149,51 +152,49 @@
           tr.innerHTML = `
             <td><b>${it.infraction}</b></td>
             <td>${catBadge(it.category)}</td>
-            <td>${badge(it.classification)}</td>
-            <td class="td-right">$${Number(it.amende||0).toLocaleString()}</td>
-            <td class="td-right">${Number(it.jour_fourriere||0)} j</td>
-            <td class="td-right">
-              <button class="btn small" data-add="${idx}">Ajouter</button>
+            <td>${badgeClassification(it.classification)}</td>
+            <td style="text-align:right">${money(it.amende)}</td>
+            <td style="text-align:right">${Number(it.jour_fourriere||0)} j</td>
+            <td style="text-align:right">
+              <button class="btn add-btn" data-add="${idx}">Ajouter</button>
             </td>
           `;
           tbody.appendChild(tr);
         });
 
-        // Ajout à la sélection
-        table.querySelectorAll('button[data-add]').forEach(btn => {
-          btn.addEventListener('click', (e) => {
+        table.querySelectorAll('button[data-add]').forEach(btn=>{
+          btn.addEventListener('click', (e)=>{
             const idx = Number(e.currentTarget.getAttribute('data-add'));
             selection.push(arr[idx]);
             renderSelection();
           });
         });
 
-        container.appendChild(table);
+        el.list.appendChild(table);
       }
 
-      // --- rendu : SELECTION en tableau ---
-      function renderSelection() {
-        const wrap = el.selWrap;
-        wrap.innerHTML = '';
+      // === SELECTION : tableau ===
+      function renderSelection(){
+        el.selWrap.innerHTML = '';
 
         const table = document.createElement('table');
         table.className = 'table';
-        table.setAttribute('aria-label', 'Sélection');
+        table.setAttribute('aria-label','Sélection');
         table.innerHTML = `
           <thead>
             <tr>
               <th>Infraction</th>
               <th>Catégorie</th>
-              <th class="td-right">Amende</th>
-              <th class="td-right">Fourrière</th>
-              <th class="td-right"></th>
+              <th style="text-align:right">Amende</th>
+              <th style="text-align:right">Fourrière</th>
+              <th style="text-align:right"></th>
             </tr>
           </thead>
           <tbody></tbody>
         `;
         const tbody = table.querySelector('tbody');
 
-        if (!selection.length) {
+        if (!selection.length){
           const tr = document.createElement('tr');
           tr.innerHTML = `<td colspan="5" class="muted">Aucune sélection.</td>`;
           tbody.appendChild(tr);
@@ -203,16 +204,17 @@
             tr.innerHTML = `
               <td><b>${it.infraction}</b></td>
               <td>${catBadge(it.category)}</td>
-              <td class="td-right">$${Number(it.amende||0).toLocaleString()}</td>
-              <td class="td-right">${Number(it.jour_fourriere||0)} j</td>
-              <td class="td-right"><button class="btn small ghost" data-del="${idx}">Retirer</button></td>
+              <td style="text-align:right">${money(it.amende)}</td>
+              <td style="text-align:right">${Number(it.jour_fourriere||0)} j</td>
+              <td style="text-align:right">
+                <button class="btn ghost" data-del="${idx}">Retirer</button>
+              </td>
             `;
             tbody.appendChild(tr);
           });
 
-          // Retirer ligne
-          table.querySelectorAll('button[data-del]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+          table.querySelectorAll('button[data-del]').forEach(btn=>{
+            btn.addEventListener('click', (e)=>{
               const idx = Number(e.currentTarget.getAttribute('data-del'));
               selection.splice(idx, 1);
               renderSelection();
@@ -220,26 +222,18 @@
           });
         }
 
-        wrap.appendChild(table);
+        el.selWrap.appendChild(table);
 
-        // Totaux
-        const totalAmende = selection.reduce((s,i)=> s + (Number(i.amende)||0), 0);
-        const totalFourr  = selection.reduce((s,i)=> s + (Number(i.jour_fourriere)||0), 0);
-        el.totaux.innerHTML = `
-          <div class="card">
-            <div class="muted small">Total amendes</div>
-            <div style="font-size:20px; font-weight:900">$${totalAmende.toLocaleString()}</div>
-          </div>
-          <div class="card">
-            <div class="muted small">Total fourrière</div>
-            <div style="font-size:20px; font-weight:900">${totalFourr} jour(s)</div>
-          </div>
-        `;
+        // Totaux (cartes existantes)
+        const tA = selection.reduce((s,i)=> s + (Number(i.amende)||0), 0);
+        const tF = selection.reduce((s,i)=> s + (Number(i.jour_fourriere)||0), 0);
+        el.tAmende.textContent = money(tA);
+        el.tFour.textContent   = `${tF} jour(s)`;
       }
 
-      // --- filtrage ---
-      function filterAndRender() {
-        const q = (el.searchA.value || '').toLowerCase().trim();
+      // === filtre ===
+      function filterAndRender(){
+        const q = (el.searchA.value||'').toLowerCase().trim();
         if (!q) return renderList(infractions);
         const out = infractions.filter(it =>
           String(it.infraction||'').toLowerCase().includes(q) ||
@@ -249,18 +243,18 @@
         renderList(out);
       }
 
-      // --- chargement des données ---
-      async function load() {
-        try {
+      // === chargement ===
+      async function load(){
+        try{
           const { data, error } = await db.from('calculateur')
             .select('id, category, infraction, classification, amende, garde_a_vue, audition, jour_fourriere, peine_compl')
             .order('category', { ascending: true })
             .limit(2000);
           if (error) throw error;
           infractions = data || [];
-        } catch (err) {
+        } catch(err){
           console.error('Erreur chargement calculateur:', err);
-          el.list.innerHTML = `<div class="pill red">Erreur de chargement : ${err.message}</div>`;
+          el.list.innerHTML = `<div class="badge badge-red">Erreur : ${err.message}</div>`;
           return;
         }
         renderList(infractions);
