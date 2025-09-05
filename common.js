@@ -2,8 +2,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ⬇️ REMPLACE ces 2 constantes par celles de ton projet
-export const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
-export const SUPABASE_ANON_KEY = "YOUR-PUBLIC-ANON-KEY";
+export const SUPABASE_URL = "https://lmlzvszgiugxypizuien.supabase.co";
+export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtbHp2c3pnaXVneHlwaXp1aWVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTk5NjQsImV4cCI6MjA3MjYzNTk2NH0.z4E5aJ3mjU0KfYd-LUci-JM8u5sp6TjylSj3o_iWfVU";
 
 // Client
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -51,3 +51,4 @@ export async function requireAuthOrRedirect() {
   }
   return session.user;
 }
+
