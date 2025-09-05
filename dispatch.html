@@ -4,36 +4,36 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Central — Dispatch</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=3" />
 </head>
 <body>
 <header>
   <div class="brand"><a href="index.html"><img src="badge.png" alt="badge"></a><div class="title">SAINT-GEORGES SHERIFF</div></div>
-  <img src="badge.png" alt="badge" style="height:40px;width:auto">
-  <div class="spread"><span id="clock" class="pill">--:--:--</span><span id="who" class="pill">Non connecté</span>
+  <div class="spread">
+    <span id="clock" class="pill">--:--:--</span>
+    <span id="who" class="pill">Non connecté</span>
     <a href="index.html" class="btn ghost">← Accueil</a>
     <button id="btn-logout" class="btn gold hidden">Déconnexion</button>
   </div>
 </header>
 
-<main class="container">
-  <div class="grid lg-grid-3">
-    <div class="card">
-      <h2 class="badge">DISPATCH</h2>
-      <div class="muted small" style="margin:8px 0 12px">Sélectionne les effectifs et le véhicule, puis « Enregistrer ».</div>
-      <div id="tiles" class="grid-2"></div>
-    </div>
-    <div class="card" style="grid-column:span 2">
-      <h3>État des équipes (temps réel)</h3>
-      <table class="table" id="etat-table">
-        <thead><tr>
-          <th>Équipe</th><th>Conducteur</th><th>Radio</th><th>Coéquipier 1</th><th>Coéquipier 2</th>
-          <th>Véhicule</th><th>Statut</th><th>Notes</th><th>MAJ</th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
+<main class="container dispatch-layout">
+  <!-- Colonne gauche : tuiles compactes -->
+  <aside id="tiles-col" class="tiles-stack"></aside>
+
+  <!-- Colonne droite : tableau temps réel -->
+  <section class="card table-card">
+    <h3>Dispatch en temps réel</h3>
+    <table class="table" id="etat-table">
+      <thead>
+        <tr>
+          <th>Équipe</th><th>Conducteur</th><th>Radio</th>
+          <th>C1</th><th>C2</th><th>Véhicule</th><th>Statut</th><th>Notes</th><th>MAJ</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
 </main>
 
 <footer>© Sheriff’s Department — Saint-Georges</footer>
@@ -42,4 +42,3 @@
 <script type="module" src="dispatch.js"></script>
 </body>
 </html>
-
