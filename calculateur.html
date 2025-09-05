@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Central — Calculateur</title>
+  <link rel="stylesheet" href="styles.css?v=12" />
+</head>
+<body>
+<header>
+  <div class="brand">
+    <a href="index.html"><img src="badge.png" alt="badge"></a>
+    <div class="title">SAINT-GEORGES SHERIFF</div>
+  </div>
+  <div class="spread">
+    <span id="clock" class="pill">--:--:--</span>
+    <span id="who" class="pill">Non connecté</span>
+    <a href="index.html" class="btn ghost">← Accueil</a>
+    <button id="btn-logout" class="btn gold hidden">Déconnexion</button>
+  </div>
+</header>
+
+<main class="container">
+  <!-- Résumé sélection -->
+  <section class="card" id="resume-card">
+    <div class="spread" style="gap:12px; align-items:flex-start">
+      <div>
+        <h3>Résumé</h3>
+        <div class="resume-grid">
+          <div class="resume-box">
+            <div class="resume-label">Total amendes</div>
+            <div id="resume-amende" class="resume-value">$0</div>
+          </div>
+          <div class="resume-box">
+            <div class="resume-label">Jours fourrière</div>
+            <div id="resume-fourriere" class="resume-value">0</div>
+          </div>
+          <div class="resume-box">
+            <div class="resume-label">Garde à vue</div>
+            <div id="resume-gav" class="resume-value badge">NON</div>
+          </div>
+          <div class="resume-box">
+            <div class="resume-label">Audition</div>
+            <div id="resume-audition" class="resume-value badge">NON</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <button id="btn-clear" class="btn">Vider la sélection</button>
+      </div>
+    </div>
+
+    <div id="selection-list" class="selection-list"></div>
+  </section>
+
+  <!-- Recherche / filtres -->
+  <section class="card">
+    <div class="filters">
+      <input id="q" class="input" placeholder="Rechercher (infraction, mots-clés…)" />
+      <select id="filter-category">
+        <option value="">Toutes catégories</option>
+      </select>
+      <select id="filter-class">
+        <option value="">Toutes classifications</option>
+        <option value="CONTRAVENTION">CONTRAVENTION</option>
+        <option value="DÉLIT">DÉLIT</option>
+        <option value="DELIT">DÉLIT</option>
+        <option value="CRIME">CRIME</option>
+      </select>
+    </div>
+
+    <!-- Liste d'infractions -->
+    <div id="list-infractions" class="infractions-list"></div>
+  </section>
+</main>
+
+<footer>© Sheriff’s Department — Saint-Georges</footer>
+
+<script type="module" src="common.js"></script>
+
+<!-- (Optionnel) Fallback local : crée un fichier calculateur_data.js avec window.INFRACTIONS = [ ... ] -->
+<script src="calculateur_data.js"></script>
+
+<script type="module" src="calculateur.js"></script>
+</body>
+</html>
