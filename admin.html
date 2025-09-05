@@ -6,7 +6,7 @@
   <title>Administration — Saint-Georges Sheriff</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    /* Accordéon minimal, compatible avec ton thème */
+    /* Accordéon compact, compatible avec ton thème */
     details.card { padding:0 }
     details.card > summary {
       list-style:none; cursor:pointer; user-select:none;
@@ -179,14 +179,9 @@
         <button class="btn gold" id="btn-reset-week">Reset semaine</button>
       </div>
       <p class="muted small" style="margin-top:8px">
-        La RPC <code>reset_compteurs_semaine()</code> est tentée en premier.  
-        Sinon, le script essaie plusieurs combinaisons table/colonne.  
-        <b>Idéal :</b> définis ci-dessous la table/colonne exactes pour le reset.
+        Le reset supprime les lignes de <code>compteur_sessions</code> depuis <b>lundi 00:00 (Europe/Paris)</b>.
+        Il tente d’abord la RPC <code>reset_compteur_semaine_sessions()</code>, sinon il exécute le fallback côté client.
       </p>
-      <div class="grid" style="grid-template-columns:1fr 1fr; gap:8px; margin-top:8px">
-        <input id="reset-table" placeholder="Nom table ex: compteurs (optionnel)" />
-        <input id="reset-col"   placeholder="Nom colonne ex: semaine_minutes (optionnel)" />
-      </div>
       <div id="reset-result" class="muted" style="margin-top:6px"></div>
     </div>
   </details>
@@ -197,45 +192,12 @@
 <script type="module">
   import { supabase, startClock, bindHeaderAuth } from "./common.js";
 
-  /* =================== CONFIG (adapte au besoin) =================== */
-  const CONFIG = {
-    tables: {
-      grades:      "grades",
-      effectifs:   "effectifs",
-      infractions: "calculateur",
-      vehicules:   "vehicules",
-      profiles:    "profiles"
-    },
-    keys: {
-      // Clés candidates pour identifier un effectif
-      effectifsPKCandidates: ["id","id_effectif","effectif_id","eid","uid","matricule","mat"],
-      // Mapping possible pour véhicules (détection par ligne)
-      vehicules: {
-        id:      ["id","ID","vehicule_id","vehicle_id"],
-        plaque:  ["plaque","immatriculation","plate","registration","immat","reg"],
-        modele:  ["modele","model","modèle"],
-        couleur: ["couleur","color","colour"],
-        statut:  ["statut","status","state"]
-      }
-    },
-    reset: {
-      rpc: "reset_compteurs_semaine",
-      // Si tu connais les vrais noms, fixe-les ici, sinon laisse null pour autodétection
-      table: null, // ex: "compteurs"
-      col:   null, // ex: "semaine_minutes"
-      // valeurs essayées si pas d'override
-      tableCandidates: ["compteurs","compteur"],
-      colCandidates:   ["semaine_minutes","semaine","minutes_semaine"]
-    }
-  };
-
-  /* =================== Header / Auth =================== */
   startClock();
   bindHeaderAuth();
 
-  // Accordéon: ne garder ouvert qu'un seul bloc à la fois
+  /* ============ Accordion: un seul ouvert à la fois ============ */
   document.querySelectorAll("details.card > summary").forEach(sum=>{
-    sum.addEventListener("click", (e)=>{
+    sum.addEventListener("click", ()=>{
       const d = sum.parentElement;
       if (!d.open) {
         document.querySelectorAll("details.card[open]").forEach(o=>{ if(o!==d) o.removeAttribute("open"); });
@@ -243,17 +205,32 @@
     });
   });
 
-  // Petit flash message
+  /* =================== Helpers =================== */
+  const $ = (id)=>document.getElementById(id);
   function flash(msg, type="info"){
     const clr = type==="error" ? "badge badge-red" : type==="ok" ? "badge badge-green" : "badge";
     const x = document.createElement("div");
-    x.innerHTML = `<span class="${clr}" style="display:inline-block; margin:8px 0">${msg}</span>`;
-    document.body.appendChild(x);
-    setTimeout(()=>x.remove(), 3500);
+    x.style.position = "fixed"; x.style.right = "12px"; x.style.bottom = "12px"; x.style.zIndex = 9999;
+    x.innerHTML = `<span class="${clr}" style="display:inline-block; padding:8px 10px">${msg}</span>`;
+    document.body.appendChild(x); setTimeout(()=>x.remove(), 3000);
   }
-
-  // Helper DOM
-  const $ = (id)=>document.getElementById(id);
+  function resolveKey(row, candidates){
+    for (const k of candidates){
+      if (row && Object.prototype.hasOwnProperty.call(row, k) && row[k] != null) return { col:k, val:row[k] };
+    }
+    return { col:null, val:null };
+  }
+  function keyMapFromRow(row, dict){
+    const lower = Object.fromEntries(Object.keys(row||{}).map(k=>[k.toLowerCase(), k]));
+    const pick = (list)=> list.map(x=>x.toLowerCase()).map(x=>lower[x]).find(Boolean);
+    return {
+      id:      pick(dict.id || []),
+      plaque:  pick(dict.plaque || []),
+      modele:  pick(dict.modele || []),
+      couleur: pick(dict.couleur|| []),
+      statut:  pick(dict.statut || []),
+    };
+  }
 
   /* =================== Guard Admin =================== */
   async function ensureAdmin(){
@@ -274,12 +251,12 @@
       };
       return false;
     }
-    // Check via RPC is_admin si dispo, sinon fallback via profiles.role
+    // RPC is_admin si dispo, sinon profiles.role
     let ok = false;
     try { const { data } = await supabase.rpc("is_admin"); ok = !!data; } catch {}
     if (!ok){
       try{
-        const { data } = await supabase.from(CONFIG.tables.profiles).select("role").eq("id", user.id).maybeSingle();
+        const { data } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
         ok = (data?.role || "").toLowerCase() === "admin";
       }catch{}
     }
@@ -293,123 +270,96 @@
     return true;
   }
 
-  /* =================== Utils =================== */
-  const money = (n)=> `$${Number(n||0).toLocaleString()}`;
-  function makeTile(fields, actionsHTML){
-    const wrap = document.createElement("div");
-    wrap.className = "equipe-tile";
-    let inner = "";
-    fields.forEach(f=>{
-      inner += `<div style="margin-bottom:6px">
-        <label class="muted small">${f.label||""}</label>
-        <input ${f.type==='number'?'type="number"':''} class="f" data-k="${f.key}" value="${f.value ?? ''}" placeholder="${f.placeholder||''}" />
-      </div>`;
-    });
-    inner += `<div class="actions">${actionsHTML}</div>`;
-    wrap.innerHTML = inner;
-    return wrap;
-  }
-  function resolveKey(row, candidates){
-    for (const k of candidates){
-      if (row && Object.prototype.hasOwnProperty.call(row, k) && row[k] != null) return { col:k, val:row[k] };
-    }
-    return { col:null, val:null };
-  }
-  function keyMapFromRow(row, dict){
-    const lower = Object.fromEntries(Object.keys(row||{}).map(k=>[k.toLowerCase(), k]));
-    const pick = (list)=> list.map(x=>x.toLowerCase()).map(x=>lower[x]).find(Boolean);
-    return {
-      id:      pick(dict.id || []),
-      plaque:  pick(dict.plaque || []),
-      modele:  pick(dict.modele || []),
-      couleur: pick(dict.couleur|| []),
-      statut:  pick(dict.statut || []),
-    };
-  }
-
   /* =================== GRADES =================== */
   async function loadGrades(){
     const box = $("tiles-grades"); box.innerHTML = "";
-    const { data, error } = await supabase.from(CONFIG.tables.grades).select("*").order("ordre",{ascending:true});
+    const { data, error } = await supabase.from("grades").select("*").order("ordre",{ascending:true});
     if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
     (data||[]).forEach(row=>{
-      const tile = makeTile([
-        {key:"ordre", label:"Ordre", value:row.ordre, type:"number", placeholder:"ex: 30"},
-        {key:"label", label:"Intitulé", value:row.label, placeholder:"ex: Sergent"},
-      ], `<button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button>`);
+      const wrap = document.createElement("div");
+      wrap.className = "equipe-tile";
+      wrap.innerHTML = `
+        <div style="margin-bottom:6px"><label class="muted small">Ordre</label><input type="number" class="f" data-k="ordre" value="${row.ordre??0}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Intitulé</label><input class="f" data-k="label" value="${row.label??''}" /></div>
+        <div class="actions"><button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button></div>
+      `;
       const idcol = resolveKey(row, ["id","grade_id","ID"]).col;
-      tile.querySelector(".act-save").onclick = async ()=>{
-        const ordre = Number(tile.querySelector('[data-k="ordre"]').value||0);
-        const label = tile.querySelector('[data-k="label"]').value.trim();
-        const q = supabase.from(CONFIG.tables.grades).update({ ordre, label }).eq(idcol, row[idcol]).select();
-        const { data:ret, error } = await q;
+      wrap.querySelector(".act-save").onclick = async ()=>{
+        const payload = {
+          ordre: Number(wrap.querySelector('[data-k="ordre"]').value||0),
+          label: wrap.querySelector('[data-k="label"]').value.trim()
+        };
+        const { data:ret, error } = await supabase.from("grades").update(payload).eq(idcol, row[idcol]).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne modifiée (RLS ?).");
         loadGrades(); flash("Grade enregistré","ok");
       };
-      tile.querySelector(".act-del").onclick = async ()=>{
+      wrap.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer ce grade ?")) return;
-        const { data:ret, error } = await supabase.from(CONFIG.tables.grades).delete().eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await supabase.from("grades").delete().eq(idcol, row[idcol]).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne supprimée (RLS ?).");
         loadGrades(); flash("Grade supprimé","ok");
       };
-      box.appendChild(tile);
+      box.appendChild(wrap);
     });
   }
   $("btn-grade-add").onclick = async ()=>{
     const label = $("grade-label").value.trim();
     const ordre = Number($("grade-ordre").value||0);
     if (!label) return alert("Intitulé requis.");
-    const { data, error } = await supabase.from(CONFIG.tables.grades).insert({ label, ordre }).select();
+    const { data, error } = await supabase.from("grades").insert({ label, ordre }).select();
     if (error) return alert(error.message);
     if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
-    $("grade-label").value=""; $("grade-ordre").value="";
-    loadGrades(); flash("Grade ajouté","ok");
+    $("grade-label").value=""; $("grade-ordre").value=""; loadGrades(); flash("Grade ajouté","ok");
   };
 
   /* =================== EFFECTIFS =================== */
+  const EFFECTIFS_PK = ["id","id_effectif","effectif_id","eid","uid","matricule","mat"];
   async function loadEffectifs(){
     const box = $("tiles-effectifs"); box.innerHTML = "";
-    const { data, error } = await supabase.from(CONFIG.tables.effectifs).select("*").order("matricule",{ascending:true});
+    const { data, error } = await supabase.from("effectifs").select("*").order("matricule",{ascending:true});
     if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
     (data||[]).forEach(row=>{
-      const tile = makeTile([
-        {key:"matricule", label:"Matricule", value:row.matricule ?? row.MATRICULE ?? "", placeholder:"SG-001"},
-        {key:"nom",       label:"Nom",       value:row.nom ?? row.NOM ?? "",           placeholder:"Doe John"},
-        {key:"grade",     label:"Grade",     value:row.grade ?? row.GRADE ?? "",       placeholder:"Sergent"},
-      ], `<button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button>`);
-      const { col:pk, val } = resolveKey(row, CONFIG.keys.effectifsPKCandidates);
+      const wrap = document.createElement("div");
+      wrap.className = "equipe-tile";
+      wrap.innerHTML = `
+        <div style="margin-bottom:6px"><label class="muted small">Matricule</label><input class="f" data-k="matricule" value="${row.matricule ?? row.MATRICULE ?? ''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Nom</label><input class="f" data-k="nom" value="${row.nom ?? row.NOM ?? ''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Grade</label><input class="f" data-k="grade" value="${row.grade ?? row.GRADE ?? ''}" /></div>
+        <div class="actions"><button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button></div>
+      `;
+      const { col:pk, val } = resolveKey(row, EFFECTIFS_PK);
 
-      tile.querySelector(".act-save").onclick = async ()=>{
+      wrap.querySelector(".act-save").onclick = async ()=>{
         const payload = {
-          matricule: tile.querySelector('[data-k="matricule"]').value.trim(),
-          nom:       tile.querySelector('[data-k="nom"]').value.trim(),
-          grade:     tile.querySelector('[data-k="grade"]').value.trim()
+          matricule: wrap.querySelector('[data-k="matricule"]').value.trim(),
+          nom:       wrap.querySelector('[data-k="nom"]').value.trim(),
+          grade:     wrap.querySelector('[data-k="grade"]').value.trim()
         };
-        let res;
-        if (pk) res = await supabase.from(CONFIG.tables.effectifs).update(payload).eq(pk, val).select();
-        else if (row.matricule) res = await supabase.from(CONFIG.tables.effectifs).update(payload).eq("matricule", row.matricule).select();
+        let resp;
+        if (pk) resp = await supabase.from("effectifs").update(payload).eq(pk, val).select();
+        else if (row.matricule) resp = await supabase.from("effectifs").update(payload).eq("matricule", row.matricule).select();
         else return alert("Impossible d’identifier la ligne (clé).");
 
-        if (res.error) return alert(res.error.message);
-        if (!res.data?.length) return alert("Aucune ligne modifiée (RLS ?).");
+        if (resp.error) return alert(resp.error.message);
+        if (!resp.data?.length) return alert("Aucune ligne modifiée (RLS ?).");
         loadEffectifs(); flash("Effectif enregistré","ok");
       };
 
-      tile.querySelector(".act-del").onclick = async ()=>{
+      wrap.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer cet effectif ?")) return;
-        let res;
-        if (pk) res = await supabase.from(CONFIG.tables.effectifs).delete().eq(pk, val).select();
-        else if (row.matricule) res = await supabase.from(CONFIG.tables.effectifs).delete().eq("matricule", row.matricule).select();
+        let resp;
+        if (pk) resp = await supabase.from("effectifs").delete().eq(pk, val).select();
+        else if (row.matricule) resp = await supabase.from("effectifs").delete().eq("matricule", row.matricule).select();
         else return alert("Impossible d’identifier la ligne (clé).");
 
-        if (res.error) return alert(res.error.message);
-        if (!res.data?.length) return alert("Aucune ligne supprimée (RLS ?).");
+        if (resp.error) return alert(resp.error.message);
+        if (!resp.data?.length) return alert("Aucune ligne supprimée (RLS ?).");
         loadEffectifs(); flash("Effectif supprimé","ok");
       };
 
-      box.appendChild(tile);
+      box.appendChild(wrap);
     });
   }
   $("btn-eff-add").onclick = async ()=>{
@@ -417,53 +367,52 @@
     const matricule = $("eff-matricule").value.trim();
     const grade = $("eff-grade").value.trim();
     if (!nom || !matricule) return alert("Nom et Matricule requis.");
-    const { data, error } = await supabase.from(CONFIG.tables.effectifs).insert({ nom, matricule, grade }).select();
+    const { data, error } = await supabase.from("effectifs").insert({ nom, matricule, grade }).select();
     if (error) return alert(error.message);
     if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
-    $("eff-nom").value=""; $("eff-matricule").value=""; $("eff-grade").value="";
-    loadEffectifs(); flash("Effectif ajouté","ok");
+    $("eff-nom").value=""; $("eff-matricule").value=""; $("eff-grade").value=""; loadEffectifs(); flash("Effectif ajouté","ok");
   };
 
   /* =================== INFRACTIONS =================== */
   async function loadInfractions(){
     const box = $("tiles-infractions"); box.innerHTML = "";
-    const { data, error } = await supabase.from(CONFIG.tables.infractions)
+    const { data, error } = await supabase.from("calculateur")
       .select("id, category, infraction, classification, amende, jour_fourriere, peine_compl")
       .order("category",{ascending:true}).order("infraction",{ascending:true});
     if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
     (data||[]).forEach(row=>{
-      const tile = makeTile([
-        {key:"category",        label:"Catégorie",        value:row.category,        placeholder:"Code de la route"},
-        {key:"infraction",      label:"Infraction",       value:row.infraction,      placeholder:"Excès de vitesse"},
-        {key:"classification",  label:"Classification",   value:row.classification,  placeholder:"Contravention/Délit/Crime"},
-        {key:"amende",          label:"Amende",           value:row.amende,          type:"number", placeholder:"500"},
-        {key:"jour_fourriere",  label:"Jours fourrière",  value:row.jour_fourriere,  type:"number", placeholder:"0"},
-      ], `<button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button>`);
+      const wrap = document.createElement("div");
+      wrap.className = "equipe-tile";
+      wrap.innerHTML = `
+        <div style="margin-bottom:6px"><label class="muted small">Catégorie</label><input class="f" data-k="category" value="${row.category??''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Infraction</label><input class="f" data-k="infraction" value="${row.infraction??''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Classification</label><input class="f" data-k="classification" value="${row.classification??''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Amende</label><input type="number" class="f" data-k="amende" value="${row.amende??0}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Jours fourrière</label><input type="number" class="f" data-k="jour_fourriere" value="${row.jour_fourriere??0}" /></div>
+        <div class="actions"><button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button></div>
+      `;
       const idcol = resolveKey(row, ["id","ID"]).col;
-
-      tile.querySelector(".act-save").onclick = async ()=>{
+      wrap.querySelector(".act-save").onclick = async ()=>{
         const payload = {
-          category:       tile.querySelector('[data-k="category"]').value.trim(),
-          infraction:     tile.querySelector('[data-k="infraction"]').value.trim(),
-          classification: tile.querySelector('[data-k="classification"]').value.trim(),
-          amende:         Number(tile.querySelector('[data-k="amende"]').value||0),
-          jour_fourriere: Number(tile.querySelector('[data-k="jour_fourriere"]').value||0),
+          category:       wrap.querySelector('[data-k="category"]').value.trim(),
+          infraction:     wrap.querySelector('[data-k="infraction"]').value.trim(),
+          classification: wrap.querySelector('[data-k="classification"]').value.trim(),
+          amende:         Number(wrap.querySelector('[data-k="amende"]').value||0),
+          jour_fourriere: Number(wrap.querySelector('[data-k="jour_fourriere"]').value||0),
         };
-        if (!idcol) return alert("Ligne sans identifiant (colonne id manquante).");
-        const { data:ret, error } = await supabase.from(CONFIG.tables.infractions).update(payload).eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await supabase.from("calculateur").update(payload).eq(idcol, row[idcol]).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne modifiée (RLS ?).");
         loadInfractions(); flash("Infraction enregistrée","ok");
       };
-      tile.querySelector(".act-del").onclick = async ()=>{
+      wrap.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer cette infraction ?")) return;
-        if (!idcol) return alert("Ligne sans identifiant (colonne id manquante).");
-        const { data:ret, error } = await supabase.from(CONFIG.tables.infractions).delete().eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await supabase.from("calculateur").delete().eq(idcol, row[idcol]).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne supprimée (RLS ?).");
         loadInfractions(); flash("Infraction supprimée","ok");
       };
-      box.appendChild(tile);
+      box.appendChild(wrap);
     });
   }
   $("btn-inf-add").onclick = async ()=>{
@@ -476,7 +425,7 @@
       peine_compl:    $("inf-peines").value.trim() || null,
     };
     if (!payload.category || !payload.infraction) return alert("Catégorie et libellé requis.");
-    const { data, error } = await supabase.from(CONFIG.tables.infractions).insert(payload).select();
+    const { data, error } = await supabase.from("calculateur").insert(payload).select();
     if (error) return alert(error.message);
     if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
     ["inf-cat","inf-name","inf-classif","inf-amende","inf-fourriere","inf-peines"].forEach(id=>$(id).value="");
@@ -484,49 +433,57 @@
   };
 
   /* =================== VÉHICULES =================== */
+  const VEH_KEY_CANDIDATES = {
+    id:      ["id","ID","vehicule_id","vehicle_id"],
+    plaque:  ["plaque","immatriculation","plate","registration","immat","reg"],
+    modele:  ["modele","model","modèle"],
+    couleur: ["couleur","color","colour"],
+    statut:  ["statut","status","state"]
+  };
   async function loadVehicules(){
     const box = $("tiles-veh"); box.innerHTML = "";
-    const { data, error } = await supabase.from(CONFIG.tables.vehicules).select("*");
+    const { data, error } = await supabase.from("vehicules").select("*");
     if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
     const rows = data||[];
-    const map = rows.length ? keyMapFromRow(rows[0], CONFIG.keys.vehicules) : { id:"id", plaque:"plaque", modele:"modele", couleur:"couleur", statut:"statut" };
+    const map = rows.length ? keyMapFromRow(rows[0], VEH_KEY_CANDIDATES) : { id:"id", plaque:"plaque", modele:"modele", couleur:"couleur", statut:"statut" };
 
     rows.forEach(row=>{
-      const tile = makeTile([
-        {key:"plaque",  label:"Plaque",  value: row[map.plaque]  ?? "", placeholder:"SG-123-XX"},
-        {key:"modele",  label:"Modèle",  value: row[map.modele]  ?? "", placeholder:"Interceptor"},
-        {key:"couleur", label:"Couleur", value: row[map.couleur] ?? "", placeholder:"Noir"},
-        {key:"statut",  label:"Statut",  value: row[map.statut]  ?? "", placeholder:"service/garage"},
-      ], `<button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button>`);
-
-      const idcol = map.id; // on exige une clé id-like pour update/delete fiables
-      tile.querySelector(".act-save").onclick = async ()=>{
+      const wrap = document.createElement("div");
+      wrap.className = "equipe-tile";
+      wrap.innerHTML = `
+        <div style="margin-bottom:6px"><label class="muted small">Plaque</label><input class="f" data-k="plaque" value="${row[map.plaque] ?? ''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Modèle</label><input class="f" data-k="modele" value="${row[map.modele] ?? ''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Couleur</label><input class="f" data-k="couleur" value="${row[map.couleur] ?? ''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Statut</label><input class="f" data-k="statut" value="${row[map.statut] ?? ''}" /></div>
+        <div class="actions"><button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button></div>
+      `;
+      const idcol = map.id;
+      wrap.querySelector(".act-save").onclick = async ()=>{
         const payload = {
-          [map.plaque || "plaque"]:  tile.querySelector('[data-k="plaque"]').value.trim(),
-          [map.modele || "modele"]:  tile.querySelector('[data-k="modele"]').value.trim(),
-          [map.couleur|| "couleur"]: tile.querySelector('[data-k="couleur"]').value.trim(),
-          [map.statut || "statut"]:  tile.querySelector('[data-k="statut"]').value.trim(),
+          [map.plaque || "plaque"]:  wrap.querySelector('[data-k="plaque"]').value.trim(),
+          [map.modele || "modele"]:  wrap.querySelector('[data-k="modele"]').value.trim(),
+          [map.couleur|| "couleur"]: wrap.querySelector('[data-k="couleur"]').value.trim(),
+          [map.statut || "statut"]:  wrap.querySelector('[data-k="statut"]').value.trim(),
         };
         if (!idcol) return alert("Pas de colonne identifiant (id) sur la table véhicules.");
-        const { data:ret, error } = await supabase.from(CONFIG.tables.vehicules).update(payload).eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await supabase.from("vehicules").update(payload).eq(idcol, row[idcol]).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne modifiée (RLS ?).");
         loadVehicules(); flash("Véhicule enregistré","ok");
       };
-      tile.querySelector(".act-del").onclick = async ()=>{
+      wrap.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer ce véhicule ?")) return;
         if (!idcol) return alert("Pas de colonne identifiant (id) sur la table véhicules.");
-        const { data:ret, error } = await supabase.from(CONFIG.tables.vehicules).delete().eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await supabase.from("vehicules").delete().eq(idcol, row[idcol]).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne supprimée (RLS ?).");
         loadVehicules(); flash("Véhicule supprimé","ok");
       };
-
-      box.appendChild(tile);
+      box.appendChild(wrap);
     });
   }
   $("btn-veh-add").onclick = async ()=>{
-    // Insertion avec champs "standards". Si tes colonnes diffèrent, adapte ici.
+    // Insertion "standard" — adapte si tes noms de colonnes sont spécifiques
     const payload = {
       plaque:  $("veh-plaque").value.trim(),
       modele:  $("veh-modele").value.trim(),
@@ -534,57 +491,62 @@
       statut:  $("veh-statut").value.trim()
     };
     if (!payload.plaque || !payload.modele) return alert("Plaque et Modèle requis.");
-    const { data, error } = await supabase.from(CONFIG.tables.vehicules).insert(payload).select();
+    const { data, error } = await supabase.from("vehicules").insert(payload).select();
     if (error) return alert(error.message);
     if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
     ["veh-plaque","veh-modele","veh-couleur","veh-statut"].forEach(id=>$(id).value="");
     loadVehicules(); flash("Véhicule ajouté","ok");
   };
 
-  /* =================== RESET semaine =================== */
-  async function doReset(table, col){
-    const { error } = await supabase.from(table).update({ [col]: 0 }).select();
-    if (error) throw error;
-    return `${table}.${col} = 0`;
+  /* =================== RESET semaine (compteur_sessions.started_at) =================== */
+  function mondayStartISO() {
+    // Lundi 00:00 Europe/Paris -> renvoie ISO UTC
+    const now = new Date();
+    const fmt = new Intl.DateTimeFormat('fr-FR', {
+      timeZone: 'Europe/Paris',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    const parts = fmt.formatToParts(now).reduce((o, p) => (o[p.type] = p.value, o), {});
+    const parisNow = new Date(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`);
+    const weekday = (parisNow.getDay() + 6) % 7; // Mon=0
+    const monday = new Date(parisNow);
+    monday.setDate(parisNow.getDate() - weekday);
+    monday.setHours(0, 0, 0, 0);
+    return new Date(monday.getTime() - monday.getTimezoneOffset() * 60000).toISOString();
   }
+
   async function resetSemaine(){
     const out = $("reset-result");
-    const overrideTable = $("reset-table").value.trim() || CONFIG.reset.table;
-    const overrideCol   = $("reset-col").value.trim()   || CONFIG.reset.col;
     out.textContent = "Traitement en cours…";
 
-    // 1) RPC prioritaire
+    // 1) RPC prioritaire (si créée)
     try{
-      const { error } = await supabase.rpc(CONFIG.reset.rpc);
+      const { data, error } = await supabase.rpc("reset_compteur_semaine_sessions");
       if (error) throw error;
-      out.textContent = "Reset effectué via RPC reset_compteurs_semaine().";
+      out.textContent = `Reset via RPC: ${data ?? 0} session(s) supprimée(s).`;
       flash("Reset semaine effectué","ok");
       return;
-    }catch(e){ out.textContent = `RPC indisponible: ${e.message}. Tentative fallback…`; }
-
-    // 2) Overrides si fournis
-    if (overrideTable && overrideCol){
-      try{
-        const msg = await doReset(overrideTable, overrideCol);
-        out.textContent = `Reset effectué sur ${msg}`;
-        flash("Reset semaine effectué","ok");
-        return;
-      }catch(e){ out.textContent = `Échec override ${overrideTable}.${overrideCol} → ${e.message}`; }
+    }catch(e){
+      console.warn("RPC indisponible:", e?.message || e);
     }
 
-    // 3) Probes
-    for (const t of CONFIG.reset.tableCandidates){
-      for (const c of CONFIG.reset.colCandidates){
-        try{
-          const msg = await doReset(t, c);
-          out.textContent = `Reset effectué sur ${msg}`;
-          flash("Reset semaine effectué","ok");
-          return;
-        }catch(e){ /* on continue */ }
-      }
+    // 2) Fallback client: DELETE sur compteur_sessions depuis lundi 00:00
+    try{
+      const weekStartIso = mondayStartISO();
+      const { data, error } = await supabase
+        .from("compteur_sessions")
+        .delete()
+        .gte("started_at", weekStartIso)
+        .select();
+      if (error) throw error;
+      const n = Array.isArray(data) ? data.length : 0;
+      out.textContent = `Reset effectué (suppression de ${n} session(s) depuis lundi 00:00).`;
+      flash("Reset semaine effectué","ok");
+    }catch(e){
+      out.textContent = `Échec du reset: ${e.message}`;
+      flash("Reset semaine échoué","error");
     }
-    out.textContent = "Échec du reset (ni RPC ni fallback). Vérifie le nom de la table et de la colonne, ou renseigne-les ci-dessus.";
-    flash("Reset semaine échoué","error");
   }
   $("btn-reset-week").onclick = resetSemaine;
 
