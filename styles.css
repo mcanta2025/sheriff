@@ -43,10 +43,6 @@ h1,h2,h3{margin:6px 0 10px}
 .tileIcon{width:40px;height:40px;border-radius:10px;background:linear-gradient(180deg,var(--gold),var(--gold-2));
   display:flex;align-items:center;justify-content:center;color:#000;font-weight:900}
 
-/* Table */
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
-
 /* === Dispatch layout (2 colonnes) === */
 .dispatch-layout{
   display:grid;
@@ -86,8 +82,7 @@ h1,h2,h3{margin:6px 0 10px}
 .equipe-tile .actions{display:flex;justify-content:flex-end;gap:6px;margin-top:6px}
 .equipe-tile .btn{padding:4px 8px;font-size:12px}
 
-footer{padding:24px 16px;color:var(--muted);text-align:center}
-
+/* === Organigramme (cartes) === */
 .orga-grid{
   display:grid;
   grid-template-columns: repeat(auto-fill, minmax(240px,1fr));
@@ -115,3 +110,5 @@ footer{padding:24px 16px;color:var(--muted);text-align:center}
 .status-dispo{background:var(--success);color:#000}
 .status-patrol{background:var(--warn);color:#000}
 .status-indispo{background:var(--danger);color:#fff}
+
+footer{padding:24px 16px;color:var(--muted);text-align:center}
