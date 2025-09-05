@@ -1,19 +1,16 @@
-// compteur.js
 import { supabase, startClock, bindHeaderAuth, requireAuthOrRedirect } from './common.js';
 
 startClock();
 await bindHeaderAuth();
 await requireAuthOrRedirect();
 
-/* ========= ÉTAT ========= */
 const state = {
-  raw: [],                 // données brutes depuis la vue
-  q: "",                   // recherche
-  sortKey: "grade_ordre",  // clé de tri par défaut (depuis la vue)
-  sortDir: "asc",          // asc | desc
+  raw: [],
+  q: "",
+  sortKey: "grade_ordre",
+  sortDir: "asc",
 };
 
-/* ========= UTILS ========= */
 function formatDuration(sec){
   sec = Math.floor(sec || 0);
   const d = Math.floor(sec / 86400);
@@ -25,24 +22,19 @@ function formatDuration(sec){
 const cmpText = (a,b)=> (a||"").localeCompare(b||"", undefined, {sensitivity:"base"});
 const cmpNum  = (a,b)=> (Number(a)||0) - (Number(b)||0);
 
-/* ========= CHARGEMENT ========= */
 async function fetchCompteurs(){
-  // Vue triée par hiérarchie (assure-toi qu’elle existe côté DB)
   const VIEW = "v_compteur_temps_hierarchie";
   const { data, error } = await supabase.from(VIEW).select("*");
   if(error){ console.error("fetchCompteurs", error); return []; }
   return data || [];
 }
 
-/* ========= FILTRES + TRI ========= */
 function filtered(){
   const q = state.q.trim().toLowerCase();
   let arr = [...state.raw];
   if(q){
     arr = arr.filter(e=>{
-      const hay = [
-        e.prenom_nom||"", e.matricule||"", e.grade||""
-      ].join(" ").toLowerCase();
+      const hay = [ e.prenom_nom||"", e.matricule||"", e.grade||"" ].join(" ").toLowerCase();
       return hay.includes(q);
     });
   }
@@ -52,35 +44,25 @@ function filtered(){
 function sorted(list){
   const { sortKey, sortDir } = state;
   const dir = sortDir === "desc" ? -1 : 1;
-
   return list.sort((A,B)=>{
     const a = A?.[sortKey];
     const b = B?.[sortKey];
-
-    // numériques connus
-    if (sortKey === "secondes_semaine" || sortKey === "derniere_maj" || sortKey === "grade_ordre") {
+    if (sortKey === "secondes_semaine" || sortKey === "derniere_maj" || sortKey === "grade_ordre")
       return dir * cmpNum(a,b);
-    }
-    if (sortKey === "actif") {
-      // true avant false
-      return dir * ( (b?1:0) - (a?1:0) );
-    }
-    // strings (grade, matricule, prenom_nom)
-    if (sortKey === "grade" || sortKey === "matricule" || sortKey === "prenom_nom") {
+    if (sortKey === "actif")
+      return dir * ((b?1:0) - (a?1:0));
+    if (sortKey === "grade" || sortKey === "matricule" || sortKey === "prenom_nom")
       return dir * cmpText(a,b);
-    }
     return 0;
   });
 }
 
-/* ========= RENDU ========= */
 function render(){
   const tbody = document.querySelector('#tbl-compteurs tbody');
   if(!tbody) return;
   tbody.innerHTML = "";
 
   const rows = sorted(filtered());
-
   rows.forEach(e=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -97,7 +79,6 @@ function render(){
   decorateSortedHeader();
 }
 
-/* ========= TRI PAR CLIC EN-TÊTE ========= */
 const headerMap = [
   { thIndex: 0, key: "grade" },
   { thIndex: 1, key: "matricule" },
@@ -140,13 +121,10 @@ function decorateSortedHeader(){
   });
 }
 
-/* ========= INIT + RUNTIME ========= */
 async function init(){
-  // 1) données initiales
   state.raw = await fetchCompteurs();
   render();
 
-  // 2) recherche
   const inputQ = document.getElementById('q');
   if(inputQ){
     inputQ.addEventListener('input', (e)=>{
@@ -155,11 +133,9 @@ async function init(){
     });
   }
 
-  // 3) tri par en-tête
   bindHeaderSorting();
   decorateSortedHeader();
 
-  // 4) realtime sur les sessions (ouverture/fermeture)
   supabase.channel("rt-sessions")
     .on("postgres_changes",{event:"*",schema:"public",table:"compteur_sessions"}, async ()=>{
       state.raw = await fetchCompteurs();
@@ -167,7 +143,6 @@ async function init(){
     })
     .subscribe();
 
-  // 5) auto-refresh périodique
   setInterval(async ()=>{
     state.raw = await fetchCompteurs();
     render();
