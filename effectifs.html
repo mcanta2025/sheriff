@@ -3,25 +3,40 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Central — TITRE</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Central — Effectifs</title>
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body>
 <header>
   <div class="brand"><a href="index.html"><img src="badge.png" alt="badge"></a><div class="title">SAINT-GEORGES SHERIFF</div></div>
-  <div class="spread"><span id="clock" class="pill">--:--:--</span><span id="who" class="pill">Non connecté</span>
+  <div class="spread">
+    <span id="clock" class="pill">--:--:--</span>
+    <span id="who" class="pill">Non connecté</span>
     <a href="index.html" class="btn ghost">← Accueil</a>
     <button id="btn-logout" class="btn gold hidden">Déconnexion</button>
   </div>
 </header>
+
 <main class="container">
-  <h2 class="badge">EFFECTIFS</h2>
-  <div class="card">À implémenter…</div>
+  <section class="card">
+    <h3>Liste des effectifs</h3>
+    <table class="table" id="effectifs-table">
+      <thead>
+        <tr>
+          <th>Matricule</th>
+          <th>Nom</th>
+          <th>Grade</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
 </main>
+
 <footer>© Sheriff’s Department — Saint-Georges</footer>
-<script type="module">
-  import { startClock, bindHeaderAuth, requireAuthOrRedirect } from './common.js';
-  startClock(); await bindHeaderAuth(); await requireAuthOrRedirect();
-</script>
+
+<script type="module" src="common.js"></script>
+<script type="module" src="effectifs.js"></script>
 </body>
 </html>
