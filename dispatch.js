@@ -45,7 +45,52 @@ function tileTemplate(tag){
   `;
   return el;
 }
+async function loadEtat(){
+  const { data, error } = await supabase.from("v_equipes").select("*");
+  if(error){ console.error(error); return; }
 
+  const cont = document.getElementById("orga"); 
+  cont.innerHTML = "";
+
+  (data||[])
+    .sort((a,b)=> (a.tag==="LEAD")? -1 : (b.tag==="LEAD")? 1 : a.tag.localeCompare(b.tag))
+    .forEach(r=>{
+      const card = document.createElement("div");
+      card.className = "team-card";
+
+      // statut coloré
+      let stClass=""; 
+      if(r.status==="DISPO") stClass="status-dispo";
+      else if(r.status==="PATROL") stClass="status-patrol";
+      else stClass="status-indispo";
+
+      card.innerHTML = `
+        <h4>${r.tag}</h4>
+        <div class="status ${stClass}">${r.status_label||r.status||""}</div>
+        <div><b>Conducteur:</b> ${r.conducteur_nom||""}</div>
+        <div><b>Radio:</b> ${r.radio_nom||""}</div>
+        <div><b>C1:</b> ${r.coequipier1_nom||""}</div>
+        <div><b>C2:</b> ${r.coequipier2_nom||""}</div>
+        <div><b>Véhicule:</b> ${r.vehicule||""} ${r.vehicule_modele||""}</div>
+        <div class="muted small">${r.notes||""}</div>
+      `;
+      cont.appendChild(card);
+
+      // Hydrate tuile si existante
+      const tile=[...document.querySelectorAll(".equipe-tile")]
+        .find(t=>t.querySelector("h4").textContent===r.tag);
+      if(tile && !tile.contains(document.activeElement)){
+        tile.querySelector(".sel-conducteur").value  = r.conducteur  || "";
+        tile.querySelector(".sel-radio").value       = r.radio       || "";
+        tile.querySelector(".sel-coequipier1").value = r.coequipier1 || "";
+        tile.querySelector(".sel-coequipier2").value = r.coequipier2 || "";
+        tile.querySelector(".sel-vehicule").value    = r.vehicule    || "";
+        tile.querySelector(".sel-status").value      = r.status      || "";
+        if (!tile.querySelector(".txt-notes").matches(':focus'))
+          tile.querySelector(".txt-notes").value = r.notes || "";
+      }
+    });
+}
 async function buildTiles(){
   const cont = document.getElementById("tiles-col");
   cont.innerHTML = "";
@@ -169,3 +214,4 @@ supabase.channel("rt-equipes")
 /* Init */
 await buildTiles();
 await loadEtat();
+
