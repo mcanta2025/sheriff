@@ -1,277 +1,311 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Central Dispatch</title>
-  <style>
-    :root{--bg:#0f0f10;--panel:#17181a;--muted:#a7a7a7;--accent:#ffd166;--fg:#fff;--line:#232428}
-    *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial}
-    header{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:#0c0c0d}
-    .badge{background:var(--accent);color:#000;font-weight:700;border-radius:10px;padding:6px 10px}
-    .muted{color:var(--muted)}
-    .wrap{padding:16px;max-width:1280px;margin:0 auto}
-    .grid{display:grid;gap:16px}
-    @media(min-width:1024px){.grid{grid-template-columns:1.1fr .9fr}}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
-    h2,h3{margin:6px 0 10px}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    select,textarea,input{width:100%;background:#0d0d0e;border:1px solid var(--line);border-radius:10px;color:#fff;padding:8px}
-    textarea{min-height:60px;resize:vertical}
-    .btn{background:#1f1f22;border:1px solid #2a2a2f;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer}
-    .btn:hover{background:#26262b}
-    .right{display:flex;gap:8px;align-items:center}
-    table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
-    .tile{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
-    .tiles{display:grid;gap:12px}
-    @media(min-width:900px){.tiles{grid-template-columns:repeat(2,1fr)}}
-    .ok{color:#22c55e}.warn{color:#eab308}.err{color:#ef4444}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Saint-Georges Sheriff — Central</title>
+<meta name="color-scheme" content="dark">
+<style>
+:root{
+  --bg:#0a0b0c; --panel:#111214; --panel-2:#0f1011;
+  --line:#1e2023; --gold:#caa343; --gold-2:#8f6b1e; --text:#f6f6f6; --muted:#a7a7a7;
+  --success:#22c55e; --warn:#eab308; --danger:#ef4444;
+}
+*{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial}
+a{color:inherit;text-decoration:none}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0b0c0d,transparent)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:40px}
+.brand .title{font-weight:800;letter-spacing:.5px}
+.badge{background:linear-gradient(180deg,var(--gold),var(--gold-2));color:#000;padding:6px 10px;border-radius:999px;font-weight:800}
+.btn{background:linear-gradient(180deg,#17181a,#121315);border:1px solid var(--line);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer}
+.btn:hover{filter:brightness(1.05)}
+.btn.gold{background:linear-gradient(180deg,var(--gold),var(--gold-2));color:#000;border:0;font-weight:800}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+input,select,textarea{width:100%;background:#0d0e0f;border:1px solid var(--line);border-radius:12px;color:#fff;padding:10px}
+textarea{min-height:64px;resize:vertical}
+.container{max-width:1280px;margin:0 auto;padding:16px}
+.card{background:radial-gradient(1200px 600px at 10% -10%, #1a1b1e 0%, var(--panel) 35%, var(--panel-2) 100%);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+h1,h2,h3{margin:6px 0 10px}
+.muted{color:var(--muted)}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+@media(min-width:900px){.lg-grid-3{grid-template-columns:repeat(3,1fr)}}
+.center{display:flex;align-items:center;justify-content:center}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pill{border:1px solid var(--line);border-radius:999px;padding:4px 8px;color:var(--muted);font-size:12px}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+.tileLink{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(180deg,#141517,#0f1011);box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
+.tileLink:hover{outline:1px solid var(--gold);box-shadow:0 0 0 3px rgba(202,163,67,.15)}
+.tileIcon{width:40px;height:40px;border-radius:10px;background:linear-gradient(180deg,var(--gold),var(--gold-2));display:flex;align-items:center;justify-content:center;color:#000;font-weight:900}
+.hidden{display:none}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tiles{display:grid;gap:16px}
+@media(min-width:900px){.tiles{grid-template-columns:repeat(3,1fr)}}
+.small{font-size:12px}
+footer{padding:24px 16px;color:var(--muted);text-align:center}
+</style>
 </head>
 <body>
-  <header>
-    <div class="right">
-      <span class="badge">CENTRAL DISPATCH</span>
-      <span id="clock" class="muted" style="margin-left:10px">--:--:--</span>
-    </div>
-    <div class="right">
-      <span id="who" class="muted">Non connecté</span>
-      <button id="btn-login" class="btn">Se connecter</button>
-      <button id="btn-logout" class="btn" style="display:none">Se déconnecter</button>
-    </div>
-  </header>
 
-  <div class="wrap">
+<!-- ================= HEADER ================= -->
+<header>
+  <div class="brand">
+    <img src="badge.png" alt="Sheriff badge" />
+    <div class="title">SAINT-GEORGES SHERIFF</div>
+  </div>
+  <div class="spread">
+    <span id="clock" class="pill">--:--:--</span>
+    <span id="who" class="pill">Non connecté</span>
+    <button id="btn-login" class="btn gold">Connexion</button>
+    <button id="btn-logout" class="btn ghost hidden">Déconnexion</button>
+  </div>
+</header>
+
+<!-- ================= LOGIN / ACCUEIL ================= -->
+<main id="page-login" class="container">
+  <div class="card" style="max-width:620px;margin:32px auto">
+    <div class="center" style="flex-direction:column;gap:10px;margin-bottom:12px">
+      <img src="badge.png" alt="badge" style="height:80px" />
+      <h1>Central</h1>
+      <div class="muted">Connecte-toi pour accéder aux modules</div>
+    </div>
     <div class="grid">
-      <!-- COLONNE GAUCHE : Tuiles Dispatch -->
-      <section class="card">
-        <h2>Dispatch</h2>
-        <p class="muted">Sélectionne les effectifs et le véhicule pour chaque équipe, puis « Enregistrer ».</p>
-        <div id="tiles" class="tiles"></div>
-      </section>
-
-      <!-- COLONNE DROITE : Tableau global (temps réel) -->
-      <section class="card">
-        <h2>État des équipes (temps réel)</h2>
-        <table id="etat-table">
-          <thead>
-            <tr>
-              <th>Équipe</th>
-              <th>Conducteur</th>
-              <th>Opérateur radio</th>
-              <th>Coéquipier 1</th>
-              <th>Coéquipier 2</th>
-              <th>Véhicule</th>
-              <th>Statut</th>
-              <th>Notes</th>
-              <th>MAJ</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </section>
+      <div class="row">
+        <div><label>Email</label><input id="login-email" placeholder="nom@exemple.com" autocomplete="username"></div>
+        <div><label>Mot de passe</label><input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      </div>
+      <button id="do-login" class="btn gold">Se connecter</button>
+      <div class="muted small">Besoin d’un compte ? Un admin peut vous créer un accès dans Supabase.</div>
     </div>
   </div>
+</main>
 
-  <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+<!-- ================= DASHBOARD TUILES ================= -->
+<main id="page-home" class="container hidden">
+  <div class="spread" style="margin:10px 0 16px">
+    <h2 class="badge">TABLEAU DE BORD</h2>
+    <span class="muted">Bienvenue ! Choisis un module.</span>
+  </div>
 
-    // ====== CONFIG SUPABASE (à remplacer) ======
-    const SUPABASE_URL = "https://lmlzvszgiugxypizuien.supabase.co";   // <-- remplace
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtbHp2c3pnaXVneHlwaXp1aWVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTk5NjQsImV4cCI6MjA3MjYzNTk2NH0.z4E5aJ3mjU0KfYd-LUci-JM8u5sp6TjylSj3o_iWfVU";          // <-- remplace
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  <div class="tiles">
+    <a href="#/dispatch" class="tileLink"><div class="tileIcon">D</div><div><b>Dispatch</b><div class="muted small">Affectations en temps réel</div></div></a>
+    <a href="#/compteur" class="tileLink"><div class="tileIcon">C</div><div><b>Compteur effectifs</b><div class="muted small">Timings & séances</div></div></a>
+    <a href="#/effectifs" class="tileLink"><div class="tileIcon">E</div><div><b>Effectifs</b><div class="muted small">Liste & statuts</div></div></a>
+    <a href="#/admin" class="tileLink"><div class="tileIcon">A</div><div><b>Administration</b><div class="muted small">Gestion & droits</div></div></a>
+    <a href="#/calculateur" class="tileLink"><div class="tileIcon">K</div><div><b>Calculateur</b><div class="muted small">Heures + judiciaires</div></div></a>
+    <a href="#/fourriere" class="tileLink"><div class="tileIcon">F</div><div><b>Fourrière</b><div class="muted small">Immobilisations</div></div></a>
+  </div>
+</main>
 
-    // ====== HELPERS UI ======
-    const $  = s => document.querySelector(s);
-    const $$ = s => document.querySelectorAll(s);
-    const pad2 = n => String(n).padStart(2,'0');
-    setInterval(()=>{const d=new Date(); $("#clock").textContent=`${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`},1000);
+<!-- ================= SECTION: DISPATCH ================= -->
+<section id="view-dispatch" class="container hidden">
+  <div class="spread" style="margin:10px 0 16px">
+    <h2 class="badge">DISPATCH</h2>
+    <a href="#/" class="btn ghost">← Retour</a>
+  </div>
 
-    // ====== AUTH ======
-    $("#btn-login").onclick = async ()=>{
-      const email = prompt("Email (Supabase Auth) ?");
-      const pass  = prompt("Mot de passe ?");
-      if (!email || !pass) return;
-      const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-      if (error) alert(error.message);
+  <div class="grid lg-grid-3">
+    <div class="card">
+      <h3 style="margin-bottom:2px">Tuiles</h3>
+      <div class="muted small" style="margin-bottom:10px">Sélectionne les effectifs et le véhicule, puis « Enregistrer ».</div>
+      <div id="tiles" class="grid-2"></div>
+    </div>
+
+    <div class="card" style="grid-column:span 2">
+      <h3 style="margin-bottom:2px">État des équipes (temps réel)</h3>
+      <table class="table" id="etat-table">
+        <thead><tr>
+          <th>Équipe</th><th>Conducteur</th><th>Radio</th><th>Coéquipier 1</th><th>Coéquipier 2</th>
+          <th>Véhicule</th><th>Statut</th><th>Notes</th><th>MAJ</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SECTIONS PLACEHOLDER ================= -->
+<section id="view-compteur"   class="container hidden"><div class="spread"><h2 class="badge">COMPTEUR EFFECTIFS</h2><a href="#/" class="btn ghost">← Retour</a></div><div class="card">À brancher (start/stop timers + résumé).</div></section>
+<section id="view-effectifs"  class="container hidden"><div class="spread"><h2 class="badge">EFFECTIFS</h2><a href="#/" class="btn ghost">← Retour</a></div><div class="card">À brancher (liste, filtres, statuts).</div></section>
+<section id="view-admin"      class="container hidden"><div class="spread"><h2 class="badge">ADMINISTRATION</h2><a href="#/" class="btn ghost">← Retour</a></div><div class="card">À brancher (CRUD, droits).</div></section>
+<section id="view-calculateur"class="container hidden"><div class="spread"><h2 class="badge">CALCULATEUR</h2><a href="#/" class="btn ghost">← Retour</a></div><div class="card">À brancher (vue v_calculateur + édition).</div></section>
+<section id="view-fourriere"  class="container hidden"><div class="spread"><h2 class="badge">FOURRIÈRE</h2><a href="#/" class="btn ghost">← Retour</a></div><div class="card">À définir (table fourrière + formulaires).</div></section>
+
+<footer>© Sheriff’s Department — Saint-Georges</footer>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+/* ====== CONFIG SUPABASE ====== */
+const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";   // <- remplace
+const SUPABASE_ANON_KEY = "YOUR-PUBLIC-ANON-KEY";          // <- remplace
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ====== CLOCK ====== */
+const pad2=n=>String(n).padStart(2,"0");
+setInterval(()=>{const d=new Date();document.getElementById("clock").textContent=`${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`},1000);
+
+/* ====== NAV (login -> home -> views) ====== */
+const $=s=>document.querySelector(s);
+function show(id){["#page-login","#page-home","#view-dispatch","#view-compteur","#view-effectifs","#view-admin","#view-calculateur","#view-fourriere"].forEach(sel=>{
+  const el=$(sel); if(!el) return; el.classList.toggle("hidden",("#"+id)!==sel);
+});}
+function route(){
+  const hash=location.hash||"#/";
+  if(hash==="#/"||hash==="#") show("page-home");
+  else if(hash==="#/dispatch") { show("view-dispatch"); initDispatchOnce(); }
+  else if(hash==="#/compteur") show("view-compteur");
+  else if(hash==="#/effectifs") show("view-effectifs");
+  else if(hash==="#/admin") show("view-admin");
+  else if(hash==="#/calculateur") show("view-calculateur");
+  else if(hash==="#/fourriere") show("view-fourriere");
+}
+window.addEventListener("hashchange", route);
+
+/* ====== AUTH ====== */
+document.getElementById("btn-login").onclick=()=>{ show("page-login"); };
+document.getElementById("do-login").onclick= async ()=>{
+  const email=$("#login-email").value.trim(); const password=$("#login-pass").value.trim();
+  if(!email||!password) return alert("Email et mot de passe requis.");
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if(error) alert(error.message);
+};
+document.getElementById("btn-logout").onclick=async()=>{ await supabase.auth.signOut(); location.hash="#/"; location.reload(); };
+
+supabase.auth.onAuthStateChange((_evt,session)=>{
+  const u=session?.user;
+  $("#who").textContent=u?`Connecté : ${u.email||u.id}`:"Non connecté";
+  $("#btn-login").classList.toggle("hidden",!!u);
+  $("#btn-logout").classList.toggle("hidden",!u);
+  if(u){ show("page-home"); route(); } else { show("page-login"); }
+});
+
+/* ====== DISPATCH ====== */
+const TAGS=["ADAM 01","ADAM 02","ADAM 03","ADAM 04","ADAM 05","ATR 17","LEAD"];
+let dispatchInitialized=false;
+
+async function fetchEffectifsActifs(){ const {data}=await supabase.from("effectifs").select("matricule,nom").eq("actif",true).order("nom"); return data||[]; }
+async function fetchVehicules(){ const {data}=await supabase.from("vehicules").select("code,modele").order("code"); return data||[]; }
+async function fetchStatus(){ const {data}=await supabase.from("status").select("key,label").order("ordre"); return data||[]; }
+
+function tileTemplate(tag){
+  const el=document.createElement("div");
+  el.className="card"; el.style.marginBottom="12px";
+  el.innerHTML=`
+    <h3>${tag}</h3>
+    <div class="row">
+      <div><label>Conducteur</label><select class="sel-conducteur"></select></div>
+      <div><label>Opérateur radio</label><select class="sel-radio"></select></div>
+    </div>
+    <div class="row">
+      <div><label>Coéquipier 1</label><select class="sel-coequipier1"></select></div>
+      <div><label>Coéquipier 2</label><select class="sel-coequipier2"></select></div>
+    </div>
+    <div class="row">
+      <div><label>Véhicule</label><select class="sel-vehicule"></select></div>
+      <div><label>Statut</label><select class="sel-status"></select></div>
+    </div>
+    <div><label>Notes</label><textarea class="txt-notes" placeholder="Notes…"></textarea></div>
+    <div class="spread" style="margin-top:8px">
+      <span class="small muted">Pense à valider pour partager à tous en temps réel.</span>
+      <div><button class="btn" data-act="clear">Vider</button> <button class="btn gold" data-act="save">Enregistrer</button></div>
+    </div>`;
+  return el;
+}
+async function buildTiles(){
+  const cont=$("#tiles"); cont.innerHTML="";
+  const [eff,veh,sts]=await Promise.all([fetchEffectifsActifs(),fetchVehicules(),fetchStatus()]);
+  const effOpts='<option value="">— Choisir —</option>'+eff.map(e=>`<option value="${e.matricule}">${e.nom} (#${e.matricule})</option>`).join('');
+  const vehOpts='<option value="">— Véhicule —</option>'+veh.map(v=>`<option value="${v.code}">${v.code} — ${v.modele}</option>`).join('');
+  const stOpts='<option value="">— Statut —</option>'+sts.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+  TAGS.forEach(tag=>{
+    const t=tileTemplate(tag); cont.appendChild(t);
+    t.querySelector(".sel-conducteur").innerHTML=effOpts;
+    t.querySelector(".sel-radio").innerHTML=effOpts;
+    t.querySelector(".sel-coequipier1").innerHTML=effOpts;
+    t.querySelector(".sel-coequipier2").innerHTML=effOpts;
+    t.querySelector(".sel-vehicule").innerHTML=vehOpts;
+    t.querySelector(".sel-status").innerHTML=stOpts;
+  });
+}
+function hydrateTile(tile,row){
+  tile.querySelector(".sel-conducteur").value=row.conducteur||"";
+  tile.querySelector(".sel-radio").value=row.radio||"";
+  tile.querySelector(".sel-coequipier1").value=row.coequipier1||"";
+  tile.querySelector(".sel-coequipier2").value=row.coequipier2||"";
+  tile.querySelector(".sel-vehicule").value=row.vehicule||"";
+  tile.querySelector(".sel-status").value=row.status||"";
+  tile.querySelector(".txt-notes").value=row.notes||"";
+}
+document.addEventListener("click",async ev=>{
+  const btn=ev.target.closest("[data-act]");
+  if(!btn) return;
+  const tile=btn.closest(".card"); const tag=tile.querySelector("h3").textContent;
+  if(btn.dataset.act==="clear"){
+    tile.querySelectorAll("select").forEach(s=>s.value="");
+    tile.querySelector(".txt-notes").value="";
+    return;
+  }
+  if(btn.dataset.act==="save"){
+    const payload={
+      p_tag:tag,
+      p_conducteur:tile.querySelector(".sel-conducteur").value||null,
+      p_radio:tile.querySelector(".sel-radio").value||null,
+      p_coequipier1:tile.querySelector(".sel-coequipier1").value||null,
+      p_coequipier2:tile.querySelector(".sel-coequipier2").value||null,
+      p_vehicule:tile.querySelector(".sel-vehicule").value||null,
+      p_status:tile.querySelector(".sel-status").value||null,
+      p_notes:tile.querySelector(".txt-notes").value||null
     };
-    $("#btn-logout").onclick = async ()=>{ await supabase.auth.signOut(); location.reload(); };
+    const {error}=await supabase.rpc("save_equipe",payload);
+    if(error) return alert("Erreur: "+error.message);
+    btn.textContent="Enregistré ✓"; setTimeout(()=>btn.textContent="Enregistrer",1200);
+    await loadEtat();
+  }
+});
+async function loadEtat(){
+  const {data,error}=await supabase.from("v_equipes").select("*").order("tag");
+  if(error){console.error(error);return;}
+  const tb=$("#etat-table tbody"); tb.innerHTML="";
+  (data||[]).forEach(r=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${r.tag}</td>
+      <td>${r.conducteur_nom||""}</td>
+      <td>${r.radio_nom||""}</td>
+      <td>${r.coequipier1_nom||""}</td>
+      <td>${r.coequipier2_nom||""}</td>
+      <td>${r.vehicule?`${r.vehicule} — ${r.vehicule_modele||""}`:""}</td>
+      <td>${r.status_label||r.status||""}</td>
+      <td>${r.notes||""}</td>
+      <td>${new Date(r.updated_at).toLocaleTimeString()}</td>`;
+    tb.appendChild(tr);
+    // hydrate tuile si elle existe
+    const tile=[...document.querySelectorAll("#tiles .card")].find(t=>t.querySelector("h3").textContent===r.tag);
+    if(tile) hydrateTile(tile,r);
+  });
+}
+// realtime
+supabase.channel("rt-equipes")
+  .on("postgres_changes",{event:"*",schema:"public",table:"equipes"},loadEtat)
+  .subscribe();
 
-    supabase.auth.onAuthStateChange((_evt, session)=>{
-      const u = session?.user;
-      $("#who").textContent = u ? `Connecté : ${u.email || u.id}` : "Non connecté";
-      $("#btn-login").style.display  = u ? "none"         : "inline-block";
-      $("#btn-logout").style.display = u ? "inline-block" : "none";
-      if (u) initAll();
-    });
+async function initDispatchOnce(){
+  if(dispatchInitialized) { await loadEtat(); return; }
+  await buildTiles(); await loadEtat();
+  dispatchInitialized=true;
+}
 
-    // ====== LISTES DE RÉFÉRENCE ======
-    async function fetchEffectifsActifs(){
-      const { data, error } = await supabase.from('effectifs').select('matricule,nom').eq('actif', true).order('nom');
-      if (error) { console.error(error); return []; }
-      return data||[];
-    }
-    async function fetchVehicules(){
-      const { data, error } = await supabase.from('vehicules').select('code,modele').order('code');
-      if (error) { console.error(error); return []; }
-      return data||[];
-    }
-    async function fetchStatus(){
-      const { data, error } = await supabase.from('status').select('key,label').order('ordre');
-      if (error) { console.error(error); return []; }
-      return data||[];
-    }
-
-    // ====== TUILES DISPATCH ======
-    // Adapte la liste aux équipes que tu veux afficher :
-    const TAGS = ["ADAM 01","ADAM 02","ADAM 03","ADAM 04","ADAM 05","ATR 17","LEAD"];
-
-    function tileTemplate(tag){
-      const el = document.createElement('div');
-      el.className = "tile";
-      el.innerHTML = `
-        <h3>${tag}</h3>
-        <div class="row">
-          <div>
-            <label>Conducteur</label>
-            <select class="sel-conducteur"></select>
-          </div>
-          <div>
-            <label>Opérateur radio</label>
-            <select class="sel-radio"></select>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Coéquipier 1</label>
-            <select class="sel-coequipier1"></select>
-          </div>
-          <div>
-            <label>Coéquipier 2</label>
-            <select class="sel-coequipier2"></select>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Véhicule</label>
-            <select class="sel-vehicule"></select>
-          </div>
-          <div>
-            <label>Statut</label>
-            <select class="sel-status"></select>
-          </div>
-        </div>
-        <div>
-          <label>Notes</label>
-          <textarea class="txt-notes" placeholder="Notes…"></textarea>
-        </div>
-        <div class="right">
-          <button class="btn save-dispatch">Enregistrer</button>
-        </div>
-      `;
-      return el;
-    }
-
-    async function buildTiles(){
-      const cont = $("#tiles");
-      cont.innerHTML = "";
-      const [eff, veh, sts] = await Promise.all([fetchEffectifsActifs(), fetchVehicules(), fetchStatus()]);
-
-      const effOpts = '<option value="">— Choisir —</option>' + eff.map(e=>`<option value="${e.matricule}">${e.nom} (#${e.matricule})</option>`).join('');
-      const vehOpts = '<option value="">— Véhicule —</option>' + veh.map(v=>`<option value="${v.code}">${v.code} — ${v.modele}</option>`).join('');
-      const stOpts  = '<option value="">— Statut —</option>' + sts.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
-
-      TAGS.forEach(tag=>{
-        const t = tileTemplate(tag);
-        cont.appendChild(t);
-        t.querySelector('.sel-conducteur').innerHTML   = effOpts;
-        t.querySelector('.sel-radio').innerHTML        = effOpts;
-        t.querySelector('.sel-coequipier1').innerHTML  = effOpts;
-        t.querySelector('.sel-coequipier2').innerHTML  = effOpts;
-        t.querySelector('.sel-vehicule').innerHTML     = vehOpts;
-        t.querySelector('.sel-status').innerHTML       = stOpts;
-      });
-    }
-
-    // Remplir une tuile avec des valeurs existantes (depuis v_equipes)
-    function hydrateTileFromRow(tile, row){
-      tile.querySelector('.sel-conducteur').value   = row.conducteur   || "";
-      tile.querySelector('.sel-radio').value        = row.radio        || "";
-      tile.querySelector('.sel-coequipier1').value  = row.coequipier1  || "";
-      tile.querySelector('.sel-coequipier2').value  = row.coequipier2  || "";
-      tile.querySelector('.sel-vehicule').value     = row.vehicule     || "";
-      tile.querySelector('.sel-status').value       = row.status       || "";
-      tile.querySelector('.txt-notes').value        = row.notes        || "";
-    }
-
-    // Sauvegarde via RPC save_equipe
-    document.addEventListener('click', async (e)=>{
-      const btn = e.target.closest('.save-dispatch');
-      if (!btn) return;
-      const tile = btn.closest('.tile');
-      const tag  = tile.querySelector('h3').textContent;
-
-      const payload = {
-        p_tag:         tag,
-        p_conducteur:  tile.querySelector('.sel-conducteur').value || null,
-        p_radio:       tile.querySelector('.sel-radio').value || null,
-        p_coequipier1: tile.querySelector('.sel-coequipier1').value || null,
-        p_coequipier2: tile.querySelector('.sel-coequipier2').value || null,
-        p_vehicule:    tile.querySelector('.sel-vehicule').value || null,
-        p_status:      tile.querySelector('.sel-status').value || null,
-        p_notes:       tile.querySelector('.txt-notes').value || null
-      };
-
-      const { data, error } = await supabase.rpc('save_equipe', payload);
-      if (error) { alert("Erreur : " + error.message); return; }
-      btn.textContent = "Enregistré ✓";
-      setTimeout(()=> btn.textContent = "Enregistrer", 1200);
-      await loadEtat(); // met à jour le tableau
-    });
-
-    // ====== TABLEAU GLOBAL (v_equipes) ======
-    async function loadEtat(){
-      const { data, error } = await supabase.from('v_equipes').select('*').order('tag');
-      if (error) { console.error(error); return; }
-      const tb = $("#etat-table tbody"); tb.innerHTML = "";
-      (data||[]).forEach(r=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${r.tag}</td>
-          <td>${r.conducteur_nom || ''}</td>
-          <td>${r.radio_nom || ''}</td>
-          <td>${r.coequipier1_nom || ''}</td>
-          <td>${r.coequipier2_nom || ''}</td>
-          <td>${r.vehicule ? `${r.vehicule} — ${r.vehicule_modele||''}` : ''}</td>
-          <td>${r.status_label || r.status || ''}</td>
-          <td>${r.notes || ''}</td>
-          <td>${new Date(r.updated_at).toLocaleTimeString()}</td>
-        `;
-        tb.appendChild(tr);
-
-        // Hydrate la tuile correspondante si elle existe à gauche
-        const tile = [...$$('.tile')].find(t => t.querySelector('h3').textContent === r.tag);
-        if (tile) hydrateTileFromRow(tile, r);
-      });
-    }
-
-    // Temps réel : quand la table "equipes" change, on recharge le tableau
-    supabase.channel('rt-equipes')
-      .on('postgres_changes', { event:'*', schema:'public', table:'equipes' }, loadEtat)
-      .subscribe();
-
-    // ====== INIT ======
-    async function initAll(){
-      await buildTiles();
-      await loadEtat();
-    }
-
-    // Si déjà connecté (refresh)
-    (async ()=>{
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) initAll();
-    })();
-  </script>
+/* ====== BOOT ====== */
+const { data: { session } } = await supabase.auth.getSession();
+if(session?.user){ $("#who").textContent=`Connecté : ${session.user.email||session.user.id}`; $("#btn-login").classList.add("hidden"); $("#btn-logout").classList.remove("hidden"); show("page-home"); route(); }
+else { show("page-login"); }
+</script>
 </body>
 </html>
