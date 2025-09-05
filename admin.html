@@ -21,80 +21,75 @@
 </header>
 
 <main class="container">
-  <!-- ALERT / ACCESS -->
+  <!-- Accès restreint / Login inline -->
   <section class="card" id="admin-guard" style="display:none">
     <h3>Accès restreint</h3>
     <p class="muted">Cette page est réservée aux comptes avec le rôle <b>admin</b>.</p>
   </section>
 
-  <!-- USERS -->
-  <section class="card" id="sec-users">
-    <h3>Utilisateurs — création d’un compte</h3>
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+  <section class="card" id="admin-login" style="display:none">
+    <h3>Connexion requise</h3>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:8px">
       <div>
         <label>Email</label>
-        <input id="user-email" type="email" placeholder="ex: agent@exemple.com" />
+        <input id="login-email" type="email" placeholder="ex: agent@exemple.com" />
       </div>
       <div>
         <label>Mot de passe</label>
-        <input id="user-pass" type="password" placeholder="••••••••" />
+        <input id="login-pass" type="password" placeholder="••••••••" />
       </div>
       <div class="center">
-        <button id="btn-user-create" class="btn gold">Créer le compte</button>
+        <button id="btn-login-do" class="btn gold">Se connecter</button>
       </div>
     </div>
-    <p class="muted" style="margin-top:8px">NB: nécessite que l’inscription par mot de passe soit activée côté Auth.</p>
   </section>
 
-  <div class="grid" style="grid-template-columns:1fr 1fr; align-items:start">
-    <!-- GRADES -->
-    <section class="card" id="sec-grades">
-      <div class="spread">
-        <h3>Grades</h3>
-        <div class="spread" style="gap:6px">
-          <input id="grade-label" placeholder="Intitulé (ex: Sergent)" />
-          <input id="grade-ordre" type="number" placeholder="Ordre (ex: 30)" />
-          <button id="btn-grade-add" class="btn">Ajouter</button>
+  <!-- UTILISATEURS -->
+  <section class="card" id="sec-users">
+    <h3>Utilisateurs — création d’un compte</h3>
+    <div class="tiles">
+      <div class="equipe-tile">
+        <h4>Créer un utilisateur</h4>
+        <div class="row2">
+          <input id="user-email" type="email" placeholder="Email" />
+          <input id="user-pass" type="password" placeholder="Mot de passe" />
         </div>
-      </div>
-      <table class="table" id="tbl-grades">
-        <thead>
-          <tr>
-            <th>Ordre</th>
-            <th>Grade</th>
-            <th style="text-align:right">Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
-    <!-- EFFECTIFS -->
-    <section class="card" id="sec-effectifs">
-      <div class="spread">
-        <h3>Effectifs</h3>
-        <div class="spread" style="gap:6px">
-          <input id="eff-nom" placeholder="Nom (ex: Doe John)" />
-          <input id="eff-matricule" placeholder="Matricule (ex: SG-001)" />
-          <input id="eff-grade" placeholder="Grade (texte)" />
-          <button id="btn-eff-add" class="btn">Ajouter</button>
+        <div class="actions">
+          <button id="btn-user-create" class="btn gold">Créer le compte</button>
         </div>
+        <p class="muted" style="margin:6px 0 0">L’inscription par mot de passe doit être activée côté Auth.</p>
       </div>
-      <table class="table" id="tbl-effectifs">
-        <thead>
-          <tr>
-            <th>Matricule</th>
-            <th>Nom</th>
-            <th>Grade</th>
-            <th style="text-align:right">Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </div>
+    </div>
+  </section>
 
-  <!-- INFRACTIONS -->
+  <!-- GRADES (tuiles) -->
+  <section class="card" id="sec-grades">
+    <div class="spread">
+      <h3>Grades</h3>
+      <div class="spread" style="gap:6px">
+        <input id="grade-label" placeholder="Intitulé (ex: Sergent)" />
+        <input id="grade-ordre" type="number" placeholder="Ordre (ex: 30)" />
+        <button id="btn-grade-add" class="btn">Ajouter</button>
+      </div>
+    </div>
+    <div id="tiles-grades" class="tiles-stack"></div>
+  </section>
+
+  <!-- EFFECTIFS (tuiles) -->
+  <section class="card" id="sec-effectifs">
+    <div class="spread">
+      <h3>Effectifs</h3>
+      <div class="spread" style="gap:6px">
+        <input id="eff-nom" placeholder="Nom (ex: Doe John)" />
+        <input id="eff-matricule" placeholder="Matricule (ex: SG-001)" />
+        <input id="eff-grade" placeholder="Grade (texte)" />
+        <button id="btn-eff-add" class="btn">Ajouter</button>
+      </div>
+    </div>
+    <div id="tiles-effectifs" class="tiles-stack"></div>
+  </section>
+
+  <!-- INFRACTIONS (tuiles) -->
   <section class="card" id="sec-infractions">
     <div class="spread">
       <h3>Infractions</h3>
@@ -110,22 +105,10 @@
         <button class="btn" id="btn-inf-add">Ajouter</button>
       </div>
     </div>
-    <table class="table" id="tbl-infractions">
-      <thead>
-        <tr>
-          <th>Catégorie</th>
-          <th>Infraction</th>
-          <th>Classe</th>
-          <th>Amende</th>
-          <th>Fourrière</th>
-          <th style="text-align:right">Actions</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <div id="tiles-infractions" class="tiles-stack"></div>
   </section>
 
-  <!-- VÉHICULES -->
+  <!-- VÉHICULES (tuiles) -->
   <section class="card" id="sec-vehicules">
     <div class="spread">
       <h3>Véhicules</h3>
@@ -140,18 +123,7 @@
         <button class="btn" id="btn-veh-add">Ajouter</button>
       </div>
     </div>
-    <table class="table" id="tbl-veh">
-      <thead>
-        <tr>
-          <th>Plaque</th>
-          <th>Modèle</th>
-          <th>Couleur</th>
-          <th>Statut</th>
-          <th style="text-align:right">Actions</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <div id="tiles-veh" class="tiles-stack"></div>
   </section>
 
   <!-- RESET COMPTEURS -->
@@ -161,8 +133,8 @@
       <button class="btn gold" id="btn-reset-week">Reset semaine</button>
     </div>
     <p class="muted" style="margin-top:8px">
-      Action attendue : appeler la RPC <code>reset_compteurs_semaine()</code> (côté DB).  
-      Fallback : mettre à 0 la colonne <code>semaine_minutes</code> (table <code>compteurs</code>), si elle existe.
+      Essaie d’abord la RPC <code>reset_compteurs_semaine()</code>.  
+      Fallback : mise à 0 de <code>compteurs.semaine_minutes</code> si la table existe.
     </p>
     <div id="reset-result" class="muted"></div>
   </section>
@@ -173,306 +145,302 @@
 <script type="module">
   import { supabase, startClock, bindHeaderAuth, requireAuthOrRedirect } from "./common.js";
 
-  // === CONFIG — adapte les noms de tables si besoin ===
+  // Noms de tables (adapte si besoin)
   const TBL_GRADES     = "grades";
   const TBL_EFFECTIFS  = "effectifs";
-  const TBL_INFRACTIONS= "calculateur"; // existe déjà
+  const TBL_INFRACTIONS= "calculateur";
   const TBL_VEHICULES  = "vehicules";
-  const TBL_COMPTEURS  = "compteurs";   // si tu as une table avec semaine_minutes
-  const TBL_PROFILES   = "profiles";    // table de profils avec un champ 'role'
+  const TBL_COMPTEURS  = "compteurs";
+  const TBL_PROFILES   = "profiles";
 
-  // Démarrage header
   startClock();
   bindHeaderAuth();
 
-  // === Guard: admin only ===
-  const guardBox = document.getElementById("admin-guard");
-  const appSections = [
-    "sec-users","sec-grades","sec-effectifs","sec-infractions","sec-vehicules","sec-reset"
-  ].map(id => document.getElementById(id));
-
-  async function ensureAdmin(){
-  const user = await requireAuthOrRedirect(); // redirige si pas connecté
-
-  // 1) Check via RPC (fiable même si RLS bloque le SELECT direct)
-  let ok = false;
-  try {
-    const { data, error } = await supabase.rpc("is_admin");
-    if (error) throw error;
-    ok = !!data; // true si admin
-  } catch (e) {
-    console.warn("is_admin RPC error:", e);
-  }
-
-  // 2) (Optionnel) Filet de sécurité si tu veux whitelister des emails d'admin :
-  // const ADMIN_EMAILS = ["toi@exemple.com"];
-  // if (!ok && ADMIN_EMAILS.includes((user.email||"").toLowerCase())) ok = true;
-
-  const guardBox  = document.getElementById("admin-guard");
-  const loginBox  = document.getElementById("admin-login"); // si tu as ajouté le panneau login inline
-  const sections  = ["sec-users","sec-grades","sec-effectifs","sec-infractions","sec-vehicules","sec-reset"]
-                      .map(id => document.getElementById(id));
-
-  if (!ok) {
-    if (loginBox) loginBox.style.display = "none";
-    guardBox.style.display = "";              // montrer “Accès restreint”
-    sections.forEach(s => s.style.display = "none");
-    throw new Error("not-admin");
-  } else {
-    guardBox.style.display = "none";
-    if (loginBox) loginBox.style.display = "none";
-    sections.forEach(s => s.style.display = "");
-  }
-}
-
-  // === Utils ===
+  // Helpers
   const $ = (id)=>document.getElementById(id);
   const money = (n)=> `$${Number(n||0).toLocaleString()}`;
-  const confirmAct = (msg)=>new Promise(res=>{ if (confirm(msg)) res(true); else res(false); });
 
-  // === USERS: signUp ===
+  // Guard + Login inline
+  const guardBox = $("admin-guard");
+  const loginBox = $("admin-login");
+  const sections = ["sec-users","sec-grades","sec-effectifs","sec-infractions","sec-vehicules","sec-reset"].map($);
+
+  $("btn-login-do").addEventListener("click", async ()=>{
+    const email = $("login-email").value.trim();
+    const password = $("login-pass").value.trim();
+    if (!email || !password) return alert("Email et mot de passe requis.");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return alert(error.message);
+    location.reload();
+  });
+
+  async function ensureAdmin(){
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user){
+      loginBox.style.display = "";
+      guardBox.style.display = "none";
+      sections.forEach(s=>s.style.display="none");
+      return false;
+    }
+    // Check via RPC (robuste même si RLS bloque le SELECT)
+    let ok = false;
+    try {
+      const { data, error } = await supabase.rpc("is_admin");
+      if (error) throw error;
+      ok = !!data;
+    } catch (e) {
+      console.warn("is_admin RPC error:", e.message);
+    }
+    if (!ok){
+      loginBox.style.display = "none";
+      guardBox.style.display = "";
+      sections.forEach(s=>s.style.display="none");
+      return false;
+    }
+    // Admin OK
+    loginBox.style.display = "none";
+    guardBox.style.display = "none";
+    sections.forEach(s=>s.style.display="");
+    return true;
+  }
+
+  // ====== UTILISATEURS
   $("btn-user-create").addEventListener("click", async ()=>{
     const email = $("user-email").value.trim();
     const pass  = $("user-pass").value.trim();
     if (!email || !pass) return alert("Email et mot de passe requis.");
-    const { data, error } = await supabase.auth.signUp({ email, password: pass });
+    const { error } = await supabase.auth.signUp({ email, password: pass });
     if (error) return alert("Erreur création: " + error.message);
-    alert("Compte créé. Si la confirmation email est activée, l'utilisateur doit valider l'adresse.");
+    alert("Compte créé (vérifie l’email si confirmation activée).");
     $("user-email").value = ""; $("user-pass").value = "";
   });
 
-  // === GRADES (CRUD basique) ===
-  const tblGrades = $("tbl-grades").querySelector("tbody");
-  async function loadGrades(){
-    const { data, error } = await supabase.from(TBL_GRADES).select("*").order("ordre",{ascending:true});
-    if (error){ console.error(error); tblGrades.innerHTML = `<tr><td colspan="3" class="muted">Erreur: ${error.message}</td></tr>`; return; }
-    renderGrades(data||[]);
+  // ====== RENDUS EN TUILES
+  function makeTile(fields, actions){
+    const wrap = document.createElement("div");
+    wrap.className = "equipe-tile";
+    let inner = "";
+    for (const f of fields) {
+      inner += `<div style="margin-bottom:6px">
+        <label class="muted" style="font-size:12px">${f.label||""}</label>
+        <input ${f.type==='number'?'type="number"':''} class="f" data-k="${f.key}" value="${f.value ?? ''}" placeholder="${f.placeholder||''}" />
+      </div>`;
+    }
+    inner += `<div class="actions" style="margin-top:8px">${actions}</div>`;
+    wrap.innerHTML = inner;
+    return wrap;
   }
-  function renderGrades(rows){
-    tblGrades.innerHTML = "";
-    rows.forEach(row=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><input class="input-ord" type="number" value="${row.ordre??""}" style="width:100px" /></td>
-        <td><input class="input-label" value="${row.label??""}" /></td>
-        <td style="text-align:right">
-          <button class="btn ghost btn-save">Enregistrer</button>
-          <button class="btn btn-del">Supprimer</button>
-        </td>
-      `;
-      tr.querySelector(".btn-save").addEventListener("click", async ()=>{
-        const ordre = Number(tr.querySelector(".input-ord").value||0);
-        const label = tr.querySelector(".input-label").value.trim();
+
+  // ====== GRADES
+  async function loadGrades(){
+    const box = $("tiles-grades");
+    box.innerHTML = "";
+    const { data, error } = await supabase.from(TBL_GRADES).select("*").order("ordre",{ascending:true});
+    if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
+    (data||[]).forEach(row=>{
+      const tile = makeTile([
+        {key:"ordre", label:"Ordre", value:row.ordre, type:"number", placeholder:"ex: 30"},
+        {key:"label", label:"Intitulé", value:row.label, placeholder:"ex: Sergent"},
+      ], `
+        <button class="btn ghost act-save">Enregistrer</button>
+        <button class="btn act-del">Supprimer</button>
+      `);
+      tile.querySelector(".act-save").onclick = async ()=>{
+        const ordre = Number(tile.querySelector('[data-k="ordre"]').value||0);
+        const label = tile.querySelector('[data-k="label"]').value.trim();
         const { error } = await supabase.from(TBL_GRADES).update({ ordre, label }).eq("id", row.id);
-        if (error) alert("Erreur: "+error.message); else loadGrades();
-      });
-      tr.querySelector(".btn-del").addEventListener("click", async ()=>{
-        if (!await confirmAct("Supprimer ce grade ?")) return;
+        if (error) alert(error.message); else loadGrades();
+      };
+      tile.querySelector(".act-del").onclick = async ()=>{
+        if (!confirm("Supprimer ce grade ?")) return;
         const { error } = await supabase.from(TBL_GRADES).delete().eq("id", row.id);
-        if (error) alert("Erreur: "+error.message); else loadGrades();
-      });
-      tblGrades.appendChild(tr);
+        if (error) alert(error.message); else loadGrades();
+      };
+      box.appendChild(tile);
     });
   }
-  $("btn-grade-add").addEventListener("click", async ()=>{
+  $("btn-grade-add").onclick = async ()=>{
     const label = $("grade-label").value.trim();
     const ordre = Number($("grade-ordre").value||0);
     if (!label) return alert("Intitulé requis.");
     const { error } = await supabase.from(TBL_GRADES).insert({ label, ordre });
-    if (error) return alert("Erreur: "+error.message);
-    $("grade-label").value = ""; $("grade-ordre").value = "";
+    if (error) return alert(error.message);
+    $("grade-label").value=""; $("grade-ordre").value="";
     loadGrades();
-  });
+  };
 
-  // === EFFECTIFS (CRUD basique) ===
-  const tblEff = $("tbl-effectifs").querySelector("tbody");
+  // ====== EFFECTIFS
   async function loadEffectifs(){
+    const box = $("tiles-effectifs");
+    box.innerHTML = "";
     const { data, error } = await supabase.from(TBL_EFFECTIFS).select("*").order("matricule",{ascending:true});
-    if (error){ console.error(error); tblEff.innerHTML = `<tr><td colspan="4" class="muted">Erreur: ${error.message}</td></tr>`; return; }
-    renderEffectifs(data||[]);
-  }
-  function renderEffectifs(rows){
-    tblEff.innerHTML = "";
-    rows.forEach(row=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><input class="i-mat" value="${row.matricule??""}" /></td>
-        <td><input class="i-nom" value="${row.nom??""}" /></td>
-        <td><input class="i-grade" value="${row.grade??""}" /></td>
-        <td style="text-align:right">
-          <button class="btn ghost btn-save">Enregistrer</button>
-          <button class="btn btn-del">Supprimer</button>
-        </td>
-      `;
-      tr.querySelector(".btn-save").addEventListener("click", async ()=>{
-        const nom = tr.querySelector(".i-nom").value.trim();
-        const matricule = tr.querySelector(".i-mat").value.trim();
-        const grade = tr.querySelector(".i-grade").value.trim();
-        const { error } = await supabase.from(TBL_EFFECTIFS).update({ nom, matricule, grade }).eq("id", row.id);
-        if (error) alert("Erreur: "+error.message); else loadEffectifs();
-      });
-      tr.querySelector(".btn-del").addEventListener("click", async ()=>{
-        if (!await confirmAct("Supprimer cet effectif ?")) return;
+    if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
+    (data||[]).forEach(row=>{
+      const tile = makeTile([
+        {key:"matricule", label:"Matricule", value:row.matricule, placeholder:"SG-001"},
+        {key:"nom",       label:"Nom",       value:row.nom,       placeholder:"Doe John"},
+        {key:"grade",     label:"Grade",     value:row.grade,     placeholder:"Sergent"},
+      ], `
+        <button class="btn ghost act-save">Enregistrer</button>
+        <button class="btn act-del">Supprimer</button>
+      `);
+      tile.querySelector(".act-save").onclick = async ()=>{
+        const matricule = tile.querySelector('[data-k="matricule"]').value.trim();
+        const nom       = tile.querySelector('[data-k="nom"]').value.trim();
+        const grade     = tile.querySelector('[data-k="grade"]').value.trim();
+        const { error } = await supabase.from(TBL_EFFECTIFS).update({ matricule, nom, grade }).eq("id", row.id);
+        if (error) alert(error.message); else loadEffectifs();
+      };
+      tile.querySelector(".act-del").onclick = async ()=>{
+        if (!confirm("Supprimer cet effectif ?")) return;
         const { error } = await supabase.from(TBL_EFFECTIFS).delete().eq("id", row.id);
-        if (error) alert("Erreur: "+error.message); else loadEffectifs();
-      });
-      tblEff.appendChild(tr);
+        if (error) alert(error.message); else loadEffectifs();
+      };
+      box.appendChild(tile);
     });
   }
-  $("btn-eff-add").addEventListener("click", async ()=>{
+  $("btn-eff-add").onclick = async ()=>{
     const nom = $("eff-nom").value.trim();
     const matricule = $("eff-matricule").value.trim();
     const grade = $("eff-grade").value.trim();
     if (!nom || !matricule) return alert("Nom et Matricule requis.");
     const { error } = await supabase.from(TBL_EFFECTIFS).insert({ nom, matricule, grade });
-    if (error) return alert("Erreur: "+error.message);
-    $("eff-nom").value = ""; $("eff-matricule").value = ""; $("eff-grade").value = "";
+    if (error) return alert(error.message);
+    $("eff-nom").value=""; $("eff-matricule").value=""; $("eff-grade").value="";
     loadEffectifs();
-  });
+  };
 
-  // === INFRACTIONS (CRUD) — table calculateur existante ===
-  const tblInf = $("tbl-infractions").querySelector("tbody");
+  // ====== INFRACTIONS
   async function loadInfractions(){
+    const box = $("tiles-infractions");
+    box.innerHTML = "";
     const { data, error } = await supabase.from(TBL_INFRACTIONS)
       .select("id, category, infraction, classification, amende, jour_fourriere, peine_compl")
-      .order("category",{ascending:true}).order("infraction",{ascending:true});
-    if (error){ console.error(error); tblInf.innerHTML = `<tr><td colspan="6" class="muted">Erreur: ${error.message}</td></tr>`; return; }
-    renderInfractions(data||[]);
-  }
-  function renderInfractions(rows){
-    tblInf.innerHTML = "";
-    rows.forEach(row=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><input class="i-cat" value="${row.category??""}"></td>
-        <td><input class="i-name" value="${row.infraction??""}"></td>
-        <td><input class="i-cl" value="${row.classification??""}"></td>
-        <td><input class="i-am" type="number" value="${row.amende??0}" style="width:120px"></td>
-        <td><input class="i-fr" type="number" value="${row.jour_fourriere??0}" style="width:120px"></td>
-        <td style="text-align:right">
-          <button class="btn ghost btn-save">Enregistrer</button>
-          <button class="btn btn-del">Supprimer</button>
-        </td>
-      `;
-      tr.querySelector(".btn-save").addEventListener("click", async ()=>{
-        const category = tr.querySelector(".i-cat").value.trim();
-        const infraction = tr.querySelector(".i-name").value.trim();
-        const classification = tr.querySelector(".i-cl").value.trim();
-        const amende = Number(tr.querySelector(".i-am").value||0);
-        const jour_fourriere = Number(tr.querySelector(".i-fr").value||0);
-        const { error } = await supabase.from(TBL_INFRACTIONS)
-          .update({ category, infraction, classification, amende, jour_fourriere })
-          .eq("id", row.id);
-        if (error) alert("Erreur: "+error.message); else loadInfractions();
-      });
-      tr.querySelector(".btn-del").addEventListener("click", async ()=>{
-        if (!await confirmAct("Supprimer cette infraction ?")) return;
+      .order("category",{ascending:true})
+      .order("infraction",{ascending:true});
+    if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
+    (data||[]).forEach(row=>{
+      const tile = makeTile([
+        {key:"category",        label:"Catégorie",        value:row.category,        placeholder:"Code de la route"},
+        {key:"infraction",      label:"Infraction",       value:row.infraction,      placeholder:"Excès de vitesse"},
+        {key:"classification",  label:"Classification",   value:row.classification,  placeholder:"Contravention/Délit/Crime"},
+        {key:"amende",          label:"Amende",           value:row.amende,          type:"number", placeholder:"500"},
+        {key:"jour_fourriere",  label:"Jours fourrière",  value:row.jour_fourriere,  type:"number", placeholder:"0"},
+      ], `
+        <button class="btn ghost act-save">Enregistrer</button>
+        <button class="btn act-del">Supprimer</button>
+      `);
+      tile.querySelector(".act-save").onclick = async ()=>{
+        const payload = {
+          category:       tile.querySelector('[data-k="category"]').value.trim(),
+          infraction:     tile.querySelector('[data-k="infraction"]').value.trim(),
+          classification: tile.querySelector('[data-k="classification"]').value.trim(),
+          amende:         Number(tile.querySelector('[data-k="amende"]').value||0),
+          jour_fourriere: Number(tile.querySelector('[data-k="jour_fourriere"]').value||0),
+        };
+        const { error } = await supabase.from(TBL_INFRACTIONS).update(payload).eq("id", row.id);
+        if (error) alert(error.message); else loadInfractions();
+      };
+      tile.querySelector(".act-del").onclick = async ()=>{
+        if (!confirm("Supprimer cette infraction ?")) return;
         const { error } = await supabase.from(TBL_INFRACTIONS).delete().eq("id", row.id);
-        if (error) alert("Erreur: "+error.message); else loadInfractions();
-      });
-      tblInf.appendChild(tr);
+        if (error) alert(error.message); else loadInfractions();
+      };
+      box.appendChild(tile);
     });
   }
-  $("btn-inf-add").addEventListener("click", async ()=>{
-    const category = $("inf-cat").value.trim();
-    const infraction = $("inf-name").value.trim();
-    const classification = $("inf-classif").value.trim();
-    const amende = Number($("inf-amende").value||0);
-    const jour_fourriere = Number($("inf-fourriere").value||0);
-    const peine_compl = $("inf-peines").value.trim() || null;
-    if (!category || !infraction) return alert("Catégorie et libellé requis.");
-    const { error } = await supabase.from(TBL_INFRACTIONS)
-      .insert({ category, infraction, classification, amende, jour_fourriere, peine_compl });
-    if (error) return alert("Erreur: "+error.message);
+  $("btn-inf-add").onclick = async ()=>{
+    const payload = {
+      category:       $("inf-cat").value.trim(),
+      infraction:     $("inf-name").value.trim(),
+      classification: $("inf-classif").value.trim(),
+      amende:         Number($("inf-amende").value||0),
+      jour_fourriere: Number($("inf-fourriere").value||0),
+      peine_compl:    $("inf-peines").value.trim() || null,
+    };
+    if (!payload.category || !payload.infraction) return alert("Catégorie et libellé requis.");
+    const { error } = await supabase.from(TBL_INFRACTIONS).insert(payload);
+    if (error) return alert(error.message);
     ["inf-cat","inf-name","inf-classif","inf-amende","inf-fourriere","inf-peines"].forEach(id=>$(id).value="");
     loadInfractions();
-  });
+  };
 
-  // === VEHICULES (CRUD) ===
-  const tblVeh = $("tbl-veh").querySelector("tbody");
+  // ====== VÉHICULES
   async function loadVehicules(){
-    const { data, error } = await supabase.from(TBL_VEHICULES)
-      .select("*").order("plaque",{ascending:true});
-    if (error){ console.error(error); tblVeh.innerHTML = `<tr><td colspan="5" class="muted">Erreur: ${error.message}</td></tr>`; return; }
-    renderVehicules(data||[]);
-  }
-  function renderVehicules(rows){
-    tblVeh.innerHTML = "";
-    rows.forEach(row=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><input class="i-plaque"  value="${row.plaque??""}"></td>
-        <td><input class="i-modele"  value="${row.modele??""}"></td>
-        <td><input class="i-couleur" value="${row.couleur??""}"></td>
-        <td><input class="i-statut"  value="${row.statut??""}"></td>
-        <td style="text-align:right">
-          <button class="btn ghost btn-save">Enregistrer</button>
-          <button class="btn btn-del">Supprimer</button>
-        </td>
-      `;
-      tr.querySelector(".btn-save").addEventListener("click", async ()=>{
-        const plaque = tr.querySelector(".i-plaque").value.trim();
-        const modele = tr.querySelector(".i-modele").value.trim();
-        const couleur= tr.querySelector(".i-couleur").value.trim();
-        const statut = tr.querySelector(".i-statut").value.trim();
-        const { error } = await supabase.from(TBL_VEHICULES)
-          .update({ plaque, modele, couleur, statut }).eq("id", row.id);
-        if (error) alert("Erreur: "+error.message); else loadVehicules();
-      });
-      tr.querySelector(".btn-del").addEventListener("click", async ()=>{
-        if (!await confirmAct("Supprimer ce véhicule ?")) return;
+    const box = $("tiles-veh");
+    box.innerHTML = "";
+    const { data, error } = await supabase.from(TBL_VEHICULES).select("*").order("plaque",{ascending:true});
+    if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
+    (data||[]).forEach(row=>{
+      const tile = makeTile([
+        {key:"plaque",  label:"Plaque",  value:row.plaque,  placeholder:"SG-123-XX"},
+        {key:"modele",  label:"Modèle",  value:row.modele,  placeholder:"Interceptor"},
+        {key:"couleur", label:"Couleur", value:row.couleur, placeholder:"Noir"},
+        {key:"statut",  label:"Statut",  value:row.statut,  placeholder:"service/garage"},
+      ], `
+        <button class="btn ghost act-save">Enregistrer</button>
+        <button class="btn act-del">Supprimer</button>
+      `);
+      tile.querySelector(".act-save").onclick = async ()=>{
+        const payload = {
+          plaque:  tile.querySelector('[data-k="plaque"]').value.trim(),
+          modele:  tile.querySelector('[data-k="modele"]').value.trim(),
+          couleur: tile.querySelector('[data-k="couleur"]').value.trim(),
+          statut:  tile.querySelector('[data-k="statut"]').value.trim(),
+        };
+        const { error } = await supabase.from(TBL_VEHICULES).update(payload).eq("id", row.id);
+        if (error) alert(error.message); else loadVehicules();
+      };
+      tile.querySelector(".act-del").onclick = async ()=>{
+        if (!confirm("Supprimer ce véhicule ?")) return;
         const { error } = await supabase.from(TBL_VEHICULES).delete().eq("id", row.id);
-        if (error) alert("Erreur: "+error.message); else loadVehicules();
-      });
-      tblVeh.appendChild(tr);
+        if (error) alert(error.message); else loadVehicules();
+      };
+      box.appendChild(tile);
     });
   }
-  $("btn-veh-add").addEventListener("click", async ()=>{
-    const plaque = $("veh-plaque").value.trim();
-    const modele = $("veh-modele").value.trim();
-    const couleur= $("veh-couleur").value.trim();
-    const statut = $("veh-statut").value.trim();
-    if (!plaque || !modele) return alert("Plaque et Modèle requis.");
-    const { error } = await supabase.from(TBL_VEHICULES).insert({ plaque, modele, couleur, statut });
-    if (error) return alert("Erreur: "+error.message);
+  $("btn-veh-add").onclick = async ()=>{
+    const payload = {
+      plaque:  $("veh-plaque").value.trim(),
+      modele:  $("veh-modele").value.trim(),
+      couleur: $("veh-couleur").value.trim(),
+      statut:  $("veh-statut").value.trim()
+    };
+    if (!payload.plaque || !payload.modele) return alert("Plaque et Modèle requis.");
+    const { error } = await supabase.from(TBL_VEHICULES).insert(payload);
+    if (error) return alert(error.message);
     ["veh-plaque","veh-modele","veh-couleur","veh-statut"].forEach(id=>$(id).value="");
     loadVehicules();
-  });
+  };
 
-  // === RESET COMPTEURS SEMAINE ===
-  $("btn-reset-week").addEventListener("click", async ()=>{
-    if (!await confirmAct("Confirmer le reset des compteurs semaine ?")) return;
+  // ====== RESET SEMAINE (robuste + message d’erreur détaillé)
+  $("btn-reset-week").onclick = async ()=>{
     const out = $("reset-result");
     out.textContent = "Traitement en cours…";
-    // 1) Essaye la RPC
-    const rpc = await supabase.rpc("reset_compteurs_semaine");
-    if (!rpc.error){
+    try {
+      // RPC prioritaire
+      const rpc = await supabase.rpc("reset_compteurs_semaine");
+      if (rpc.error) throw rpc.error;
       out.textContent = "Reset effectué via RPC reset_compteurs_semaine().";
       return;
+    } catch (e) {
+      console.warn("RPC reset_compteurs_semaine error:", e.message);
     }
-    // 2) Fallback: mettre à 0 la colonne semaine_minutes (si table existe)
-    try{
+    try {
+      // Fallback sur table/colonne
       const { error } = await supabase.from(TBL_COMPTEURS).update({ semaine_minutes: 0 });
       if (error) throw error;
-      out.textContent = "Reset effectué sur la table 'compteurs' (semaine_minutes=0).";
-    } catch(e){
-      out.textContent = "Échec du reset (ni RPC ni fallback). Vérifie la DB.";
+      $("reset-result").textContent = "Reset effectué sur la table 'compteurs' (semaine_minutes=0).";
+    } catch (e) {
+      $("reset-result").textContent = "Échec du reset (ni RPC ni fallback). Vérifie la DB.";
       console.error(e);
     }
-  });
+  };
 
-  // === BOOT ===
-  await ensureAdmin();
-  // On ne charge les données que si accès OK (sections visibles)
-  if (Array.from(document.querySelectorAll('section.card')).some(s => s.style.display === "none")) {
-    // non-admin → ne pas continuer les loads
-  } else {
-    loadGrades();
-    loadEffectifs();
-    loadInfractions();
-    loadVehicules();
+  // ====== BOOT
+  if (await ensureAdmin()) {
+    await Promise.all([loadGrades(), loadEffectifs(), loadInfractions(), loadVehicules()]);
   }
 </script>
 </body>
 </html>
-
