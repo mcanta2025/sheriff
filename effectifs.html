@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Central — Effectifs</title>
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
 </head>
 <body>
 <header>
@@ -19,7 +19,19 @@
 
 <main class="container">
   <section class="card">
-    <h3>Liste des effectifs par grade</h3>
+    <h3>Effectifs</h3>
+
+    <!-- Filtres -->
+    <div class="filters">
+      <input id="q" class="input" placeholder="Rechercher (nom, matricule, activité…)" />
+      <select id="flt-actif" class="input">
+        <option value="all">Tous</option>
+        <option value="actif">Actifs</option>
+        <option value="inactif">Inactifs</option>
+      </select>
+    </div>
+
+    <!-- Conteneur rendu -->
     <div id="effectifs-container"></div>
   </section>
 </main>
