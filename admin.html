@@ -192,32 +192,38 @@
   ].map(id => document.getElementById(id));
 
   async function ensureAdmin(){
-    const user = await requireAuthOrRedirect(); // redirige vers login si non co
-    // On vérifie le rôle dans profiles (role = 'admin')
-    try{
-      const { data, error } = await supabase
-        .from(TBL_PROFILES)
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (error) throw error;
-      const ok = (data?.role || "").toLowerCase() === "admin";
-      if (!ok){
-        guardBox.style.display = "";
-        appSections.forEach(s => s.style.display = "none");
-        throw new Error("not-admin");
-      } else {
-        guardBox.style.display = "none";
-        appSections.forEach(s => s.style.display = "");
-      }
-    } catch(e){
-      console.warn("Guard admin:", e.message);
-      if (e.message !== "not-admin"){
-        guardBox.style.display = "";
-        appSections.forEach(s => s.style.display = "none");
-      }
-    }
+  const user = await requireAuthOrRedirect(); // redirige si pas connecté
+
+  // 1) Check via RPC (fiable même si RLS bloque le SELECT direct)
+  let ok = false;
+  try {
+    const { data, error } = await supabase.rpc("is_admin");
+    if (error) throw error;
+    ok = !!data; // true si admin
+  } catch (e) {
+    console.warn("is_admin RPC error:", e);
   }
+
+  // 2) (Optionnel) Filet de sécurité si tu veux whitelister des emails d'admin :
+  // const ADMIN_EMAILS = ["toi@exemple.com"];
+  // if (!ok && ADMIN_EMAILS.includes((user.email||"").toLowerCase())) ok = true;
+
+  const guardBox  = document.getElementById("admin-guard");
+  const loginBox  = document.getElementById("admin-login"); // si tu as ajouté le panneau login inline
+  const sections  = ["sec-users","sec-grades","sec-effectifs","sec-infractions","sec-vehicules","sec-reset"]
+                      .map(id => document.getElementById(id));
+
+  if (!ok) {
+    if (loginBox) loginBox.style.display = "none";
+    guardBox.style.display = "";              // montrer “Accès restreint”
+    sections.forEach(s => s.style.display = "none");
+    throw new Error("not-admin");
+  } else {
+    guardBox.style.display = "none";
+    if (loginBox) loginBox.style.display = "none";
+    sections.forEach(s => s.style.display = "");
+  }
+}
 
   // === Utils ===
   const $ = (id)=>document.getElementById(id);
@@ -469,3 +475,4 @@
 </script>
 </body>
 </html>
+
