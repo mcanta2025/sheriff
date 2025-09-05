@@ -7,10 +7,10 @@ await requireAuthOrRedirect();
 
 /* ========= ÉTAT ========= */
 const state = {
-  raw: [],          // données brutes depuis la vue
-  q: "",            // recherche
-  sortKey: "grade_ordre", // clé de tri (on s'appuie sur la vue hiérarchique)
-  sortDir: "asc",   // asc | desc
+  raw: [],                 // données brutes depuis la vue
+  q: "",                   // recherche
+  sortKey: "grade_ordre",  // clé de tri par défaut (depuis la vue)
+  sortDir: "asc",          // asc | desc
 };
 
 /* ========= UTILS ========= */
@@ -27,7 +27,7 @@ const cmpNum  = (a,b)=> (Number(a)||0) - (Number(b)||0);
 
 /* ========= CHARGEMENT ========= */
 async function fetchCompteurs(){
-  // Vue triée par hiérarchie (assure-toi qu’elle existe)
+  // Vue triée par hiérarchie (assure-toi qu’elle existe côté DB)
   const VIEW = "v_compteur_temps_hierarchie";
   const { data, error } = await supabase.from(VIEW).select("*");
   if(error){ console.error("fetchCompteurs", error); return []; }
@@ -48,6 +48,7 @@ function filtered(){
   }
   return arr;
 }
+
 function sorted(list){
   const { sortKey, sortDir } = state;
   const dir = sortDir === "desc" ? -1 : 1;
@@ -56,11 +57,8 @@ function sorted(list){
     const a = A?.[sortKey];
     const b = B?.[sortKey];
 
-    // types connus
-    if (sortKey === "secondes_semaine" || sortKey === "secondes_total") {
-      return dir * cmpNum(a,b);
-    }
-    if (sortKey === "derniere_maj" || sortKey === "grade_ordre") {
+    // numériques connus
+    if (sortKey === "secondes_semaine" || sortKey === "derniere_maj" || sortKey === "grade_ordre") {
       return dir * cmpNum(a,b);
     }
     if (sortKey === "actif") {
@@ -71,7 +69,6 @@ function sorted(list){
     if (sortKey === "grade" || sortKey === "matricule" || sortKey === "prenom_nom") {
       return dir * cmpText(a,b);
     }
-    // fallback
     return 0;
   });
 }
@@ -91,14 +88,12 @@ function render(){
       <td>${e.matricule || ""}</td>
       <td>${e.prenom_nom || ""}</td>
       <td style="text-align:center;font-weight:600">${formatDuration(e.secondes_semaine)}</td>
-      <td style="text-align:center;font-weight:600">${formatDuration(e.secondes_total)}</td>
       <td class="${e.actif ? 'actif' : 'inactif'}" style="text-align:center;font-weight:600">${e.actif ? "✔" : "✖"}</td>
       <td>${e.derniere_maj ? new Date(e.derniere_maj).toLocaleString() : ""}</td>
     `;
     tbody.appendChild(tr);
   });
 
-  // mettre à jour l’indication de tri dans l’en-tête
   decorateSortedHeader();
 }
 
@@ -108,9 +103,8 @@ const headerMap = [
   { thIndex: 1, key: "matricule" },
   { thIndex: 2, key: "prenom_nom" },
   { thIndex: 3, key: "secondes_semaine" },
-  { thIndex: 4, key: "secondes_total" },
-  { thIndex: 5, key: "actif" },
-  { thIndex: 6, key: "derniere_maj" },
+  { thIndex: 4, key: "actif" },
+  { thIndex: 5, key: "derniere_maj" },
 ];
 
 function bindHeaderSorting(){
@@ -138,7 +132,6 @@ function decorateSortedHeader(){
     const map = headerMap.find(m=>m.thIndex===i);
     if(!map) return;
     const isActive = state.sortKey === map.key;
-    // enlever ancien indicateur
     th.innerHTML = th.textContent.replace(/[▲▼]\s*$/,'').trim();
     if(isActive){
       const marker = state.sortDir === "asc" ? " ▲" : " ▼";
@@ -174,10 +167,10 @@ async function init(){
     })
     .subscribe();
 
-  // 5) auto-refresh périodique (pour faire avancer les durées des sessions en cours)
+  // 5) auto-refresh périodique
   setInterval(async ()=>{
     state.raw = await fetchCompteurs();
     render();
-  }, 30000); // 30 s (ajuste si tu veux plus/moins fréquent)
+  }, 30000);
 }
 init();
