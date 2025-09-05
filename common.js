@@ -1,20 +1,24 @@
-<script type="module">
-// ====== CONFIG SUPABASE ======
+// common.js
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// ⬇️ REMPLACE ces 2 constantes
-export const SUPABASE_URL = "https://lmlzvszgiugxypizuien.supabase.co";
-export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtbHp2c3pnaXVneHlwaXp1aWVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTk5NjQsImV4cCI6MjA3MjYzNTk2NH0.z4E5aJ3mjU0KfYd-LUci-JM8u5sp6TjylSj3o_iWfVU";
+// ⬇️ REMPLACE ces 2 constantes par celles de ton projet
+export const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
+export const SUPABASE_ANON_KEY = "YOUR-PUBLIC-ANON-KEY";
 
+// Client
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ====== HEADER (clock + auth UI) ======
+// Horloge (header)
 export function startClock() {
-  const clock = document.getElementById("clock");
-  const pad2 = n => String(n).padStart(2,'0');
-  setInterval(()=>{const d=new Date(); if(clock) clock.textContent = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;}, 1000);
+  const el = document.getElementById("clock");
+  const pad2 = n => String(n).padStart(2, "0");
+  setInterval(() => {
+    const d = new Date();
+    if (el) el.textContent = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  }, 1000);
 }
 
+// Boutons header + état utilisateur
 export async function bindHeaderAuth() {
   const who = document.getElementById("who");
   const btnLogin = document.getElementById("btn-login");
@@ -29,18 +33,16 @@ export async function bindHeaderAuth() {
   const { data: { session } } = await supabase.auth.getSession();
   setUI(session?.user);
 
-  supabase.auth.onAuthStateChange((_evt, sess)=> setUI(sess?.user));
+  supabase.auth.onAuthStateChange((_evt, sess) => setUI(sess?.user));
 
-  if (btnLogin) btnLogin.onclick = ()=> {
-    document.location.href = "index.html#login";
-  };
-  if (btnLogout) btnLogout.onclick = async ()=> {
+  if (btnLogin) btnLogin.onclick = () => { document.location.href = "index.html#login"; };
+  if (btnLogout) btnLogout.onclick = async () => {
     await supabase.auth.signOut();
     document.location.href = "index.html";
   };
 }
 
-// ====== Protection de page (exige login) ======
+// Protège une page : redirige vers login si pas connecté
 export async function requireAuthOrRedirect() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) {
@@ -49,4 +51,3 @@ export async function requireAuthOrRedirect() {
   }
   return session.user;
 }
-</script>
