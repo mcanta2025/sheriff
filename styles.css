@@ -152,4 +152,68 @@ footer{padding:24px 16px;color:var(--muted);text-align:center}
 .tag.ok { background:var(--success); color:#000; border-color:transparent; }
 .empty-note { color:var(--muted); font-style:italic; font-size:12px; margin-top:6px; }
 
+/* Style du tableau des compteurs */
+.table.compteur {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 14px;
+}
+
+.table.compteur thead {
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.table.compteur th,
+.table.compteur td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.table.compteur tbody tr:nth-child(even) {
+  background: rgba(255,255,255,0.02);
+}
+
+.table.compteur tbody tr:hover {
+  background: rgba(202,163,67,0.08);
+}
+
+.table.compteur td {
+  vertical-align: middle;
+}
+
+/* Alignements spécifiques */
+.table.compteur td:nth-child(4),
+.table.compteur td:nth-child(5),
+.table.compteur td:nth-child(6) {
+  text-align: center;
+  font-weight: 600;
+}
+
+.table.compteur td:nth-child(6) { /* Actif */
+  font-size: 16px;
+}
+
+/* Actif/Inactif badges */
+.table.compteur .actif {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.table.compteur .inactif {
+  color: #e53935;
+  font-weight: bold;
+}
+
+/* Date de dernière MAJ en petit/muté */
+.table.compteur td:last-child {
+  fon
+
+
 
