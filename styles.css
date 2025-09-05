@@ -178,3 +178,55 @@ footer{padding:24px 16px;color:var(--muted);text-align:center}
   background:linear-gradient(180deg, var(--gold), transparent);
   opacity:.35;
 }
+
+/* === Calculateur === */
+.resume-grid{
+  display:grid; gap:12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-top:6px;
+}
+.resume-box{
+  border:1px solid var(--line); border-radius:12px; padding:10px;
+  background:linear-gradient(180deg,#141517,#0f1011);
+}
+.resume-label{ color:var(--muted); font-size:12px; margin-bottom:4px; }
+.resume-value{ font-size:18px; font-weight:800; }
+.badge{ display:inline-block; padding:4px 8px; border-radius:999px; font-weight:800; background:#222; }
+.badge-green{ background:#1f8f3b; color:#000; }
+.badge-orange{ background:#d0891a; color:#000; }
+.badge-red{ background:#b52c2c; color:#fff; }
+
+.selection-list{ margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+.sel-row{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+  border:1px solid var(--line); border-left-width:6px; border-radius:10px; padding:10px;
+  background:linear-gradient(180deg,#141517,#0f1011);
+}
+.sel-row .sel-left{ flex:1; min-width:0; }
+.sel-row .sel-right{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.sel-title{ font-weight:700; margin-bottom:2px; }
+.sel-badge{ font-size:11px; }
+
+.sel-pill{
+  border:1px solid var(--line); border-radius:999px; padding:4px 8px; font-size:12px;
+}
+
+/* Couleurs par classification */
+.inf-card.contravention, .sel-row.contravention{ border-left-color:#22c55e; }
+.inf-card.delit, .sel-row.delit{ border-left-color:#eab308; }
+.inf-card.crime, .sel-row.crime{ border-left-color:#ef4444; }
+
+.cat-section{ margin-bottom:16px; }
+.cat-title{ margin:0 0 8px; color:var(--gold); }
+.inf-grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); }
+.inf-card{
+  border:1px solid var(--line); border-left-width:6px; border-radius:12px; padding:10px;
+  background:var(--panel);
+}
+.inf-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.inf-amount{ font-weight:800; }
+.inf-name{ font-weight:700; margin-bottom:4px; }
+.inf-meta{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+.inf-note{ margin-top:4px; }
+.inf-actions{ display:flex; justify-content:flex-end; }
+.add-btn{ padding:6px 10px; }
