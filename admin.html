@@ -6,7 +6,6 @@
   <title>Administration — Saint-Georges Sheriff</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    /* Accordéon compact, compatible avec ton thème */
     details.card { padding:0 }
     details.card > summary {
       list-style:none; cursor:pointer; user-select:none;
@@ -40,7 +39,7 @@
 </header>
 
 <main class="container">
-  <!-- Accès / login -->
+  <!-- Gardiens d'accès -->
   <section class="card" id="admin-guard" style="display:none">
     <h3>Accès restreint</h3>
     <p class="muted">Cette page est réservée aux comptes avec le rôle <b>admin</b>.</p>
@@ -87,7 +86,7 @@
     </div>
   </details>
 
-  <!-- GRADES -->
+  <!-- GRADES (PK = code) -->
   <details class="card" id="sec-grades">
     <summary>
       <h3 style="margin:0">Grades</h3>
@@ -96,6 +95,7 @@
     </summary>
     <div class="content">
       <div class="spread" style="gap:6px; margin-bottom:10px">
+        <input id="grade-code" placeholder="Code (PK) ex: SGT" />
         <input id="grade-label" placeholder="Intitulé (ex: Sergent)" />
         <input id="grade-ordre" type="number" placeholder="Ordre (ex: 30)" />
         <button id="btn-grade-add" class="btn">Ajouter</button>
@@ -104,7 +104,7 @@
     </div>
   </details>
 
-  <!-- EFFECTIFS -->
+  <!-- EFFECTIFS (PK = matricule) -->
   <details class="card" id="sec-effectifs">
     <summary>
       <h3 style="margin:0">Effectifs</h3>
@@ -113,16 +113,16 @@
     </summary>
     <div class="content">
       <div class="spread" style="gap:6px; margin-bottom:10px; flex-wrap:wrap">
+        <input id="eff-matricule" placeholder="Matricule (PK) ex: SG-001" />
         <input id="eff-nom" placeholder="Nom (ex: Doe John)" />
-        <input id="eff-matricule" placeholder="Matricule (ex: SG-001)" />
-        <input id="eff-grade" placeholder="Grade (texte)" />
+        <input id="eff-grade" placeholder="Grade (code ou label)" />
         <button id="btn-eff-add" class="btn">Ajouter</button>
       </div>
       <div id="tiles-effectifs" class="tiles-stack"></div>
     </div>
   </details>
 
-  <!-- INFRACTIONS -->
+  <!-- INFRACTIONS (PK = id) -->
   <details class="card" id="sec-infractions">
     <summary>
       <h3 style="margin:0">Infractions</h3>
@@ -145,7 +145,7 @@
     </div>
   </details>
 
-  <!-- VÉHICULES -->
+  <!-- VÉHICULES (PK = code) -->
   <details class="card" id="sec-vehicules">
     <summary>
       <h3 style="margin:0">Véhicules</h3>
@@ -153,14 +153,15 @@
       <span class="chev">▶</span>
     </summary>
     <div class="content">
-      <div class="grid" style="grid-template-columns: repeat(4, minmax(160px,1fr)); gap:8px">
-        <input id="veh-plaque" placeholder="Plaque" />
-        <input id="veh-modele" placeholder="Modèle" />
+      <div class="grid" style="grid-template-columns: repeat(5, minmax(140px,1fr)); gap:8px">
+        <input id="veh-code"    placeholder="Code (PK) ex: CAR-01" />
+        <input id="veh-plaque"  placeholder="Plaque" />
+        <input id="veh-modele"  placeholder="Modèle" />
         <input id="veh-couleur" placeholder="Couleur" />
-        <input id="veh-statut"  placeholder="Statut (ex: service, garage…)" />
+        <input id="veh-statut"  placeholder="Statut (service, garage…)" />
       </div>
       <div class="spread" style="margin-top:8px">
-        <span class="muted">Renseigne au moins la plaque et le modèle.</span>
+        <span class="muted">Renseigne au moins le code et le modèle.</span>
         <button class="btn" id="btn-veh-add">Ajouter</button>
       </div>
       <div id="tiles-veh" class="tiles-stack" style="margin-top:10px"></div>
@@ -171,7 +172,7 @@
   <details class="card" id="sec-reset">
     <summary>
       <h3 style="margin:0">Compteurs</h3>
-      <span class="muted">Reset semaine</span>
+      <span class="muted">Reset semaine (sessions)</span>
       <span class="chev">▶</span>
     </summary>
     <div class="content">
@@ -180,7 +181,7 @@
       </div>
       <p class="muted small" style="margin-top:8px">
         Le reset supprime les lignes de <code>compteur_sessions</code> depuis <b>lundi 00:00 (Europe/Paris)</b>.
-        Il tente d’abord la RPC <code>reset_compteur_semaine_sessions()</code>, sinon il exécute le fallback côté client.
+        Tente d’abord la RPC <code>reset_compteur_semaine_sessions()</code>, sinon fallback client.
       </p>
       <div id="reset-result" class="muted" style="margin-top:6px"></div>
     </div>
@@ -195,7 +196,7 @@
   startClock();
   bindHeaderAuth();
 
-  /* ============ Accordion: un seul ouvert à la fois ============ */
+  // Accordéon: garder un seul bloc ouvert
   document.querySelectorAll("details.card > summary").forEach(sum=>{
     sum.addEventListener("click", ()=>{
       const d = sum.parentElement;
@@ -205,7 +206,6 @@
     });
   });
 
-  /* =================== Helpers =================== */
   const $ = (id)=>document.getElementById(id);
   function flash(msg, type="info"){
     const clr = type==="error" ? "badge badge-red" : type==="ok" ? "badge badge-green" : "badge";
@@ -214,33 +214,14 @@
     x.innerHTML = `<span class="${clr}" style="display:inline-block; padding:8px 10px">${msg}</span>`;
     document.body.appendChild(x); setTimeout(()=>x.remove(), 3000);
   }
-  function resolveKey(row, candidates){
-    for (const k of candidates){
-      if (row && Object.prototype.hasOwnProperty.call(row, k) && row[k] != null) return { col:k, val:row[k] };
-    }
-    return { col:null, val:null };
-  }
-  function keyMapFromRow(row, dict){
-    const lower = Object.fromEntries(Object.keys(row||{}).map(k=>[k.toLowerCase(), k]));
-    const pick = (list)=> list.map(x=>x.toLowerCase()).map(x=>lower[x]).find(Boolean);
-    return {
-      id:      pick(dict.id || []),
-      plaque:  pick(dict.plaque || []),
-      modele:  pick(dict.modele || []),
-      couleur: pick(dict.couleur|| []),
-      statut:  pick(dict.statut || []),
-    };
-  }
 
   /* =================== Guard Admin =================== */
   async function ensureAdmin(){
     const { data: { user } } = await supabase.auth.getUser();
     const guard = $("admin-guard"), login = $("admin-login");
     const sections = Array.from(document.querySelectorAll("details.card"));
-
     if (!user){
-      login.style.display = ""; guard.style.display = "none";
-      sections.forEach(s=>s.style.display="none");
+      login.style.display = ""; guard.style.display = "none"; sections.forEach(s=>s.style.display="none");
       $("btn-login-do").onclick = async ()=>{
         const email = $("login-email").value.trim();
         const password = $("login-pass").value.trim();
@@ -251,7 +232,7 @@
       };
       return false;
     }
-    // RPC is_admin si dispo, sinon profiles.role
+    // is_admin() si dispo, sinon profiles.role = admin
     let ok = false;
     try { const { data } = await supabase.rpc("is_admin"); ok = !!data; } catch {}
     if (!ok){
@@ -261,16 +242,14 @@
       }catch{}
     }
     if (!ok){
-      login.style.display = "none"; guard.style.display = "";
-      sections.forEach(s=>s.style.display="none");
+      login.style.display = "none"; guard.style.display = ""; sections.forEach(s=>s.style.display="none");
       return false;
     }
-    login.style.display = "none"; guard.style.display = "none";
-    sections.forEach(s=>s.style.display="");
+    login.style.display = "none"; guard.style.display = "none"; sections.forEach(s=>s.style.display="");
     return true;
   }
 
-  /* =================== GRADES =================== */
+  /* =================== GRADES (PK = code) =================== */
   async function loadGrades(){
     const box = $("tiles-grades"); box.innerHTML = "";
     const { data, error } = await supabase.from("grades").select("*").order("ordre",{ascending:true});
@@ -279,24 +258,26 @@
       const wrap = document.createElement("div");
       wrap.className = "equipe-tile";
       wrap.innerHTML = `
-        <div style="margin-bottom:6px"><label class="muted small">Ordre</label><input type="number" class="f" data-k="ordre" value="${row.ordre??0}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Code (PK)</label><input class="f" data-k="code" value="${row.code??''}" /></div>
         <div style="margin-bottom:6px"><label class="muted small">Intitulé</label><input class="f" data-k="label" value="${row.label??''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Ordre</label><input type="number" class="f" data-k="ordre" value="${row.ordre??0}" /></div>
         <div class="actions"><button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button></div>
       `;
-      const idcol = resolveKey(row, ["id","grade_id","ID"]).col;
       wrap.querySelector(".act-save").onclick = async ()=>{
         const payload = {
+          code:  wrap.querySelector('[data-k="code"]').value.trim(),
+          label: wrap.querySelector('[data-k="label"]').value.trim(),
           ordre: Number(wrap.querySelector('[data-k="ordre"]').value||0),
-          label: wrap.querySelector('[data-k="label"]').value.trim()
         };
-        const { data:ret, error } = await supabase.from("grades").update(payload).eq(idcol, row[idcol]).select();
+        // on cible par l'ancien code (row.code)
+        const { data:ret, error } = await supabase.from("grades").update(payload).eq("code", row.code).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne modifiée (RLS ?).");
         loadGrades(); flash("Grade enregistré","ok");
       };
       wrap.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer ce grade ?")) return;
-        const { data:ret, error } = await supabase.from("grades").delete().eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await supabase.from("grades").delete().eq("code", row.code).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne supprimée (RLS ?).");
         loadGrades(); flash("Grade supprimé","ok");
@@ -305,17 +286,20 @@
     });
   }
   $("btn-grade-add").onclick = async ()=>{
-    const label = $("grade-label").value.trim();
-    const ordre = Number($("grade-ordre").value||0);
-    if (!label) return alert("Intitulé requis.");
-    const { data, error } = await supabase.from("grades").insert({ label, ordre }).select();
+    const payload = {
+      code:  $("grade-code").value.trim(),
+      label: $("grade-label").value.trim(),
+      ordre: Number($("grade-ordre").value||0)
+    };
+    if (!payload.code || !payload.label) return alert("Code et Intitulé requis.");
+    const { data, error } = await supabase.from("grades").insert(payload).select();
     if (error) return alert(error.message);
     if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
-    $("grade-label").value=""; $("grade-ordre").value=""; loadGrades(); flash("Grade ajouté","ok");
+    ["grade-code","grade-label","grade-ordre"].forEach(id=>$(id).value="");
+    loadGrades(); flash("Grade ajouté","ok");
   };
 
-  /* =================== EFFECTIFS =================== */
-  const EFFECTIFS_PK = ["id","id_effectif","effectif_id","eid","uid","matricule","mat"];
+  /* =================== EFFECTIFS (PK = matricule) =================== */
   async function loadEffectifs(){
     const box = $("tiles-effectifs"); box.innerHTML = "";
     const { data, error } = await supabase.from("effectifs").select("*").order("matricule",{ascending:true});
@@ -324,56 +308,47 @@
       const wrap = document.createElement("div");
       wrap.className = "equipe-tile";
       wrap.innerHTML = `
-        <div style="margin-bottom:6px"><label class="muted small">Matricule</label><input class="f" data-k="matricule" value="${row.matricule ?? row.MATRICULE ?? ''}" /></div>
-        <div style="margin-bottom:6px"><label class="muted small">Nom</label><input class="f" data-k="nom" value="${row.nom ?? row.NOM ?? ''}" /></div>
-        <div style="margin-bottom:6px"><label class="muted small">Grade</label><input class="f" data-k="grade" value="${row.grade ?? row.GRADE ?? ''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Matricule (PK)</label><input class="f" data-k="matricule" value="${row.matricule??''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Nom</label><input class="f" data-k="nom" value="${row.nom??''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Grade</label><input class="f" data-k="grade" value="${row.grade??''}" /></div>
         <div class="actions"><button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button></div>
       `;
-      const { col:pk, val } = resolveKey(row, EFFECTIFS_PK);
-
       wrap.querySelector(".act-save").onclick = async ()=>{
         const payload = {
           matricule: wrap.querySelector('[data-k="matricule"]').value.trim(),
           nom:       wrap.querySelector('[data-k="nom"]').value.trim(),
           grade:     wrap.querySelector('[data-k="grade"]').value.trim()
         };
-        let resp;
-        if (pk) resp = await supabase.from("effectifs").update(payload).eq(pk, val).select();
-        else if (row.matricule) resp = await supabase.from("effectifs").update(payload).eq("matricule", row.matricule).select();
-        else return alert("Impossible d’identifier la ligne (clé).");
-
-        if (resp.error) return alert(resp.error.message);
-        if (!resp.data?.length) return alert("Aucune ligne modifiée (RLS ?).");
+        const { data:ret, error } = await supabase.from("effectifs").update(payload).eq("matricule", row.matricule).select();
+        if (error) return alert(error.message);
+        if (!ret?.length) return alert("Aucune ligne modifiée (RLS ?).");
         loadEffectifs(); flash("Effectif enregistré","ok");
       };
-
       wrap.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer cet effectif ?")) return;
-        let resp;
-        if (pk) resp = await supabase.from("effectifs").delete().eq(pk, val).select();
-        else if (row.matricule) resp = await supabase.from("effectifs").delete().eq("matricule", row.matricule).select();
-        else return alert("Impossible d’identifier la ligne (clé).");
-
-        if (resp.error) return alert(resp.error.message);
-        if (!resp.data?.length) return alert("Aucune ligne supprimée (RLS ?).");
+        const { data:ret, error } = await supabase.from("effectifs").delete().eq("matricule", row.matricule).select();
+        if (error) return alert(error.message);
+        if (!ret?.length) return alert("Aucune ligne supprimée (RLS ?).");
         loadEffectifs(); flash("Effectif supprimé","ok");
       };
-
       box.appendChild(wrap);
     });
   }
   $("btn-eff-add").onclick = async ()=>{
-    const nom = $("eff-nom").value.trim();
-    const matricule = $("eff-matricule").value.trim();
-    const grade = $("eff-grade").value.trim();
-    if (!nom || !matricule) return alert("Nom et Matricule requis.");
-    const { data, error } = await supabase.from("effectifs").insert({ nom, matricule, grade }).select();
+    const payload = {
+      matricule: $("eff-matricule").value.trim(),
+      nom:       $("eff-nom").value.trim(),
+      grade:     $("eff-grade").value.trim()
+    };
+    if (!payload.matricule || !payload.nom) return alert("Matricule et Nom requis.");
+    const { data, error } = await supabase.from("effectifs").insert(payload).select();
     if (error) return alert(error.message);
     if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
-    $("eff-nom").value=""; $("eff-matricule").value=""; $("eff-grade").value=""; loadEffectifs(); flash("Effectif ajouté","ok");
+    ["eff-matricule","eff-nom","eff-grade"].forEach(id=>$(id).value="");
+    loadEffectifs(); flash("Effectif ajouté","ok");
   };
 
-  /* =================== INFRACTIONS =================== */
+  /* =================== INFRACTIONS (PK = id) =================== */
   async function loadInfractions(){
     const box = $("tiles-infractions"); box.innerHTML = "";
     const { data, error } = await supabase.from("calculateur")
@@ -391,7 +366,6 @@
         <div style="margin-bottom:6px"><label class="muted small">Jours fourrière</label><input type="number" class="f" data-k="jour_fourriere" value="${row.jour_fourriere??0}" /></div>
         <div class="actions"><button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button></div>
       `;
-      const idcol = resolveKey(row, ["id","ID"]).col;
       wrap.querySelector(".act-save").onclick = async ()=>{
         const payload = {
           category:       wrap.querySelector('[data-k="category"]').value.trim(),
@@ -400,14 +374,14 @@
           amende:         Number(wrap.querySelector('[data-k="amende"]').value||0),
           jour_fourriere: Number(wrap.querySelector('[data-k="jour_fourriere"]').value||0),
         };
-        const { data:ret, error } = await supabase.from("calculateur").update(payload).eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await supabase.from("calculateur").update(payload).eq("id", row.id).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne modifiée (RLS ?).");
         loadInfractions(); flash("Infraction enregistrée","ok");
       };
       wrap.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer cette infraction ?")) return;
-        const { data:ret, error } = await supabase.from("calculateur").delete().eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await supabase.from("calculateur").delete().eq("id", row.id).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne supprimée (RLS ?).");
         loadInfractions(); flash("Infraction supprimée","ok");
@@ -432,49 +406,38 @@
     loadInfractions(); flash("Infraction ajoutée","ok");
   };
 
-  /* =================== VÉHICULES =================== */
-  const VEH_KEY_CANDIDATES = {
-    id:      ["id","ID","vehicule_id","vehicle_id"],
-    plaque:  ["plaque","immatriculation","plate","registration","immat","reg"],
-    modele:  ["modele","model","modèle"],
-    couleur: ["couleur","color","colour"],
-    statut:  ["statut","status","state"]
-  };
+  /* =================== VÉHICULES (PK = code) =================== */
   async function loadVehicules(){
     const box = $("tiles-veh"); box.innerHTML = "";
-    const { data, error } = await supabase.from("vehicules").select("*");
+    const { data, error } = await supabase.from("vehicules").select("*").order("code",{ascending:true});
     if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
-    const rows = data||[];
-    const map = rows.length ? keyMapFromRow(rows[0], VEH_KEY_CANDIDATES) : { id:"id", plaque:"plaque", modele:"modele", couleur:"couleur", statut:"statut" };
-
-    rows.forEach(row=>{
+    (data||[]).forEach(row=>{
       const wrap = document.createElement("div");
       wrap.className = "equipe-tile";
       wrap.innerHTML = `
-        <div style="margin-bottom:6px"><label class="muted small">Plaque</label><input class="f" data-k="plaque" value="${row[map.plaque] ?? ''}" /></div>
-        <div style="margin-bottom:6px"><label class="muted small">Modèle</label><input class="f" data-k="modele" value="${row[map.modele] ?? ''}" /></div>
-        <div style="margin-bottom:6px"><label class="muted small">Couleur</label><input class="f" data-k="couleur" value="${row[map.couleur] ?? ''}" /></div>
-        <div style="margin-bottom:6px"><label class="muted small">Statut</label><input class="f" data-k="statut" value="${row[map.statut] ?? ''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Code (PK)</label><input class="f" data-k="code" value="${row.code??''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Plaque</label><input class="f" data-k="plaque" value="${row.plaque??''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Modèle</label><input class="f" data-k="modele" value="${row.modele??''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Couleur</label><input class="f" data-k="couleur" value="${row.couleur??''}" /></div>
+        <div style="margin-bottom:6px"><label class="muted small">Statut</label><input class="f" data-k="statut" value="${row.statut??''}" /></div>
         <div class="actions"><button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button></div>
       `;
-      const idcol = map.id;
       wrap.querySelector(".act-save").onclick = async ()=>{
         const payload = {
-          [map.plaque || "plaque"]:  wrap.querySelector('[data-k="plaque"]').value.trim(),
-          [map.modele || "modele"]:  wrap.querySelector('[data-k="modele"]').value.trim(),
-          [map.couleur|| "couleur"]: wrap.querySelector('[data-k="couleur"]').value.trim(),
-          [map.statut || "statut"]:  wrap.querySelector('[data-k="statut"]').value.trim(),
+          code:    wrap.querySelector('[data-k="code"]').value.trim(),
+          plaque:  wrap.querySelector('[data-k="plaque"]').value.trim(),
+          modele:  wrap.querySelector('[data-k="modele"]').value.trim(),
+          couleur: wrap.querySelector('[data-k="couleur"]').value.trim(),
+          statut:  wrap.querySelector('[data-k="statut"]').value.trim(),
         };
-        if (!idcol) return alert("Pas de colonne identifiant (id) sur la table véhicules.");
-        const { data:ret, error } = await supabase.from("vehicules").update(payload).eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await supabase.from("vehicules").update(payload).eq("code", row.code).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne modifiée (RLS ?).");
         loadVehicules(); flash("Véhicule enregistré","ok");
       };
       wrap.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer ce véhicule ?")) return;
-        if (!idcol) return alert("Pas de colonne identifiant (id) sur la table véhicules.");
-        const { data:ret, error } = await supabase.from("vehicules").delete().eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await supabase.from("vehicules").delete().eq("code", row.code).select();
         if (error) return alert(error.message);
         if (!ret?.length) return alert("Aucune ligne supprimée (RLS ?).");
         loadVehicules(); flash("Véhicule supprimé","ok");
@@ -483,24 +446,24 @@
     });
   }
   $("btn-veh-add").onclick = async ()=>{
-    // Insertion "standard" — adapte si tes noms de colonnes sont spécifiques
     const payload = {
+      code:    $("veh-code").value.trim(),
       plaque:  $("veh-plaque").value.trim(),
       modele:  $("veh-modele").value.trim(),
       couleur: $("veh-couleur").value.trim(),
       statut:  $("veh-statut").value.trim()
     };
-    if (!payload.plaque || !payload.modele) return alert("Plaque et Modèle requis.");
+    if (!payload.code || !payload.modele) return alert("Code et Modèle requis.");
     const { data, error } = await supabase.from("vehicules").insert(payload).select();
     if (error) return alert(error.message);
     if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
-    ["veh-plaque","veh-modele","veh-couleur","veh-statut"].forEach(id=>$(id).value="");
+    ["veh-code","veh-plaque","veh-modele","veh-couleur","veh-statut"].forEach(id=>$(id).value="");
     loadVehicules(); flash("Véhicule ajouté","ok");
   };
 
   /* =================== RESET semaine (compteur_sessions.started_at) =================== */
   function mondayStartISO() {
-    // Lundi 00:00 Europe/Paris -> renvoie ISO UTC
+    // Lundi 00:00 Europe/Paris -> ISO UTC
     const now = new Date();
     const fmt = new Intl.DateTimeFormat('fr-FR', {
       timeZone: 'Europe/Paris',
@@ -531,7 +494,7 @@
       console.warn("RPC indisponible:", e?.message || e);
     }
 
-    // 2) Fallback client: DELETE sur compteur_sessions depuis lundi 00:00
+    // 2) Fallback client: DELETE depuis lundi 00:00
     try{
       const weekStartIso = mondayStartISO();
       const { data, error } = await supabase
