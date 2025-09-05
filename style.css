@@ -10,6 +10,10 @@ header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-c
 .brand img{height:40px}
 .brand .title{font-weight:800;letter-spacing:.5px}
 .badge{background:linear-gradient(180deg,var(--gold),var(--gold-2));color:#000;padding:6px 10px;border-radius:999px;font-weight:800}
+/* ... ton thème noir & or ... */
+.brand img{height:40px; width:auto; max-width:40px; display:block}
+html,body{background:#0a0b0c;color:#f6f6f6;margin:0}
+/* le reste de styles.css que je t'ai donné précédemment */
 .btn{background:linear-gradient(180deg,#17181a,#121315);border:1px solid var(--line);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer}
 .btn:hover{filter:brightness(1.05)}
 .btn.gold{background:linear-gradient(180deg,var(--gold),var(--gold-2));color:#000;border:0;font-weight:800}
@@ -40,3 +44,4 @@ h1,h2,h3{margin:6px 0 10px}
 .tiles{display:grid;gap:16px}
 @media(min-width:900px){.tiles{grid-template-columns:repeat(3,1fr)}}
 footer{padding:24px 16px;color:var(--muted);text-align:center}
+
