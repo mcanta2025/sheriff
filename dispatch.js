@@ -45,52 +45,7 @@ function tileTemplate(tag){
   `;
   return el;
 }
-async function loadEtat(){
-  const { data, error } = await supabase.from("v_equipes").select("*");
-  if(error){ console.error(error); return; }
 
-  const cont = document.getElementById("orga"); 
-  cont.innerHTML = "";
-
-  (data||[])
-    .sort((a,b)=> (a.tag==="LEAD")? -1 : (b.tag==="LEAD")? 1 : a.tag.localeCompare(b.tag))
-    .forEach(r=>{
-      const card = document.createElement("div");
-      card.className = "team-card";
-
-      // statut coloré
-      let stClass=""; 
-      if(r.status==="DISPO") stClass="status-dispo";
-      else if(r.status==="PATROL") stClass="status-patrol";
-      else stClass="status-indispo";
-
-      card.innerHTML = `
-        <h4>${r.tag}</h4>
-        <div class="status ${stClass}">${r.status_label||r.status||""}</div>
-        <div><b>Conducteur:</b> ${r.conducteur_nom||""}</div>
-        <div><b>Radio:</b> ${r.radio_nom||""}</div>
-        <div><b>C1:</b> ${r.coequipier1_nom||""}</div>
-        <div><b>C2:</b> ${r.coequipier2_nom||""}</div>
-        <div><b>Véhicule:</b> ${r.vehicule||""} ${r.vehicule_modele||""}</div>
-        <div class="muted small">${r.notes||""}</div>
-      `;
-      cont.appendChild(card);
-
-      // Hydrate tuile si existante
-      const tile=[...document.querySelectorAll(".equipe-tile")]
-        .find(t=>t.querySelector("h4").textContent===r.tag);
-      if(tile && !tile.contains(document.activeElement)){
-        tile.querySelector(".sel-conducteur").value  = r.conducteur  || "";
-        tile.querySelector(".sel-radio").value       = r.radio       || "";
-        tile.querySelector(".sel-coequipier1").value = r.coequipier1 || "";
-        tile.querySelector(".sel-coequipier2").value = r.coequipier2 || "";
-        tile.querySelector(".sel-vehicule").value    = r.vehicule    || "";
-        tile.querySelector(".sel-status").value      = r.status      || "";
-        if (!tile.querySelector(".txt-notes").matches(':focus'))
-          tile.querySelector(".txt-notes").value = r.notes || "";
-      }
-    });
-}
 async function buildTiles(){
   const cont = document.getElementById("tiles-col");
   cont.innerHTML = "";
@@ -112,7 +67,7 @@ async function buildTiles(){
   });
 }
 
-/* Prevent duplicate roles in same team (UI) */
+/* Empêche les doublons dans une tuile */
 function enforceUniqueSelects(tile){
   const sels = [
     tile.querySelector(".sel-conducteur"),
@@ -138,7 +93,7 @@ document.addEventListener("change", (e)=>{
   }
 });
 
-/* Save / Clear */
+/* Sauvegarde / Vider */
 document.addEventListener("click", async (e)=>{
   const btn = e.target.closest("[data-act]");
   if(!btn) return;
@@ -170,38 +125,58 @@ document.addEventListener("click", async (e)=>{
   }
 });
 
-/* Table (Lead en premier) */
+/* Ne pas écraser pendant édition */
+let isEditing = false;
+document.addEventListener('focusin', (e)=>{ if (e.target.closest('.equipe-tile')) isEditing = true; });
+document.addEventListener('focusout', (e)=>{ if (e.target.closest('.equipe-tile')) isEditing = false; });
+
+/* Organigramme (cartes), LEAD en premier */
+function statusClass(k){
+  if(!k) return "";
+  const s = k.toUpperCase();
+  if (["DISPONIBLE","DISPO","AVAILABLE"].includes(s)) return "status-dispo";
+  if (["EN PATROUILLE","PATROL"].includes(s)) return "status-patrol";
+  return "status-indispo";
+}
+
 async function loadEtat(){
   const { data, error } = await supabase.from("v_equipes").select("*");
   if(error){ console.error(error); return; }
-  const tb = document.querySelector("#etat-table tbody"); tb.innerHTML = "";
+
+  // --- organigramme (droite)
+  const cont = document.getElementById("orga");
+  cont.innerHTML = "";
+
   (data||[])
     .sort((a,b)=> (a.tag==="LEAD")? -1 : (b.tag==="LEAD")? 1 : a.tag.localeCompare(b.tag))
     .forEach(r=>{
-      const tr=document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.tag}</td>
-        <td>${r.conducteur_nom||""}</td>
-        <td>${r.radio_nom||""}</td>
-        <td>${r.coequipier1_nom||""}</td>
-        <td>${r.coequipier2_nom||""}</td>
-        <td>${r.vehicule?`${r.vehicule} — ${r.vehicule_modele||""}`:""}</td>
-        <td>${r.status_label||r.status||""}</td>
-        <td>${r.notes||""}</td>
-        <td>${new Date(r.updated_at).toLocaleTimeString()}</td>`;
-      tb.appendChild(tr);
+      const card = document.createElement("div");
+      card.className = "team-card";
+      const stClass = statusClass(r.status);
+      card.innerHTML = `
+        <h4>${r.tag}</h4>
+        <div class="status ${stClass}">${r.status_label||r.status||""}</div>
+        <div><b>Conducteur:</b> ${r.conducteur_nom||""}</div>
+        <div><b>Radio:</b> ${r.radio_nom||""}</div>
+        <div><b>C1:</b> ${r.coequipier1_nom||""}</div>
+        <div><b>C2:</b> ${r.coequipier2_nom||""}</div>
+        <div><b>Véhicule:</b> ${r.vehicule||""} ${r.vehicule_modele||""}</div>
+        <div class="muted small" style="margin-top:6px">${(r.notes||"")}</div>
+      `;
+      cont.appendChild(card);
 
-      // Hydrate tile if exists
+      // hydrate la tuile à gauche si elle existe et si on n'édite pas
       const tile=[...document.querySelectorAll(".equipe-tile")]
         .find(t=>t.querySelector("h4").textContent===r.tag);
-      if(tile){
+      if(tile && !isEditing && !tile.contains(document.activeElement)){
         tile.querySelector(".sel-conducteur").value  = r.conducteur  || "";
         tile.querySelector(".sel-radio").value       = r.radio       || "";
         tile.querySelector(".sel-coequipier1").value = r.coequipier1 || "";
         tile.querySelector(".sel-coequipier2").value = r.coequipier2 || "";
         tile.querySelector(".sel-vehicule").value    = r.vehicule    || "";
         tile.querySelector(".sel-status").value      = r.status      || "";
-        tile.querySelector(".txt-notes").value       = r.notes       || "";
+        const notesEl = tile.querySelector(".txt-notes");
+        if (notesEl && !notesEl.matches(':focus')) notesEl.value = r.notes || "";
       }
     });
 }
@@ -214,4 +189,3 @@ supabase.channel("rt-equipes")
 /* Init */
 await buildTiles();
 await loadEtat();
-
