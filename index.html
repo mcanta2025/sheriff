@@ -3,362 +3,257 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Central Dispatch</title>
+  <title>Dispatch – Supabase</title>
   <style>
     :root{--bg:#0f0f10;--panel:#17181a;--muted:#a7a7a7;--accent:#ffd166;--fg:#fff;--line:#232428}
-    *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,Segoe UI,Roboto,Arial}
+    *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial}
     header{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:#0c0c0d}
     .badge{background:var(--accent);color:#000;font-weight:700;border-radius:10px;padding:6px 10px}
-    .wrap{display:grid;grid-template-columns:280px 1fr;gap:16px;padding:16px}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+    .muted{color:var(--muted)}
+    .wrap{padding:16px;max-width:1200px;margin:0 auto}
+    .grid{display:grid;gap:16px}
+    @media(min-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
     h2,h3{margin:6px 0 10px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    select,textarea,input{width:100%;background:#0d0d0e;border:1px solid var(--line);border-radius:10px;color:#fff;padding:8px}
+    textarea{min-height:70px;resize:vertical}
     .btn{background:#1f1f22;border:1px solid #2a2a2f;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer}
     .btn:hover{background:#26262b}
-    input,select,textarea{width:100%;background:#0d0d0e;border:1px solid #232428;border-radius:10px;color:#fff;padding:8px}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-    .pill{background:#111;border:1px solid #222;border-radius:999px;padding:2px 8px;color:#cfcfcf;font-size:12px}
-    .list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto}
-    .item{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#121214;border-radius:10px}
-    .muted{color:var(--muted)}
+    .right{display:flex;gap:8px;align-items:center}
+    .tile{display:flex;flex-direction:column;gap:10px}
+    .status{display:flex;gap:10px}
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
-    .tabs{display:flex;gap:8px;margin-bottom:8px}
-    .tab{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#1b1b1f;cursor:pointer}
-    .tab.active{background:#26262b}
-    .right{display:flex;gap:8px;align-items:center}
-    .danger{color:#ff6b6b}
-    .ok{color:#22c55e}
-    .inline{display:inline-flex;gap:6px;align-items:center}
+    .ok{color:#22c55e}.warn{color:#eab308}.err{color:#ef4444}
   </style>
 </head>
 <body>
   <header>
-    <div class="inline">
+    <div class="right">
       <span class="badge">CENTRAL DISPATCH</span>
-      <span id="clock" class="muted">--:--:--</span>
+      <span id="clock" class="muted" style="margin-left:10px">--:--:--</span>
     </div>
     <div class="right">
       <span id="who" class="muted">Non connecté</span>
-      <button class="btn" id="btn-login">Se connecter</button>
-      <button class="btn" id="btn-logout" style="display:none">Se déconnecter</button>
+      <button id="btn-login" class="btn">Se connecter</button>
+      <button id="btn-logout" class="btn" style="display:none">Se déconnecter</button>
     </div>
   </header>
 
   <div class="wrap">
-    <!-- Colonne gauche : Effectifs + timers -->
-    <aside class="card">
-      <h3>Effectifs</h3>
-      <div id="effectifs-list" class="list"></div>
-    </aside>
-
-    <!-- Colonne droite : onglets -->
-    <main class="card">
-      <div class="tabs">
-        <button class="tab active" data-tab="dispatch">Dispatch</button>
-        <button class="tab" data-tab="admin">Administration</button>
-        <button class="tab" data-tab="calculateur">Calculateur</button>
-      </div>
-
-      <!-- DISPATCH -->
-      <section id="tab-dispatch">
-        <div class="grid3" id="tiles"></div>
-        <p class="muted" style="margin-top:8px">Exemple minimal : affectations à brancher si tu ajoutes la table “équipes”. Ici on gère surtout les timers et les listes.</p>
+    <div class="grid">
+      <!-- Colonne 1 : Tuiles Dispatch -->
+      <section class="card">
+        <h2>Dispatch</h2>
+        <p class="muted">Sélectionne les effectifs et le véhicule, puis clique sur « Enregistrer ».</p>
+        <div id="tiles"></div>
       </section>
 
-      <!-- ADMIN -->
-      <section id="tab-admin" style="display:none">
-        <h3>Gestion des effectifs</h3>
-        <div class="row">
-          <input id="ef-nom" placeholder="Nom">
-          <input id="ef-mat" placeholder="Matricule">
-        </div>
-        <div class="row">
-          <input id="ef-grade" placeholder="Grade">
-          <select id="ef-actif"><option value="true">Actif</option><option value="false">Inactif</option></select>
-        </div>
-        <div class="right" style="margin:8px 0">
-          <button class="btn" id="ef-save">Ajouter / Mettre à jour</button>
-          <button class="btn danger" id="ef-del">Supprimer</button>
-        </div>
-        <table id="ef-table"><thead><tr><th>Nom</th><th>Matricule</th><th>Grade</th><th>Actif</th></tr></thead><tbody></tbody></table>
-
-        <h3 style="margin-top:16px">Gestion des véhicules</h3>
-        <div class="row">
-          <input id="vh-code" placeholder="Code (ex: V01)">
-          <input id="vh-modele" placeholder="Modèle (ex: SUV)">
-        </div>
-        <div class="right" style="margin:8px 0">
-          <button class="btn" id="vh-save">Ajouter / Mettre à jour</button>
-          <button class="btn danger" id="vh-del">Supprimer</button>
-        </div>
-        <table id="vh-table"><thead><tr><th>Code</th><th>Modèle</th></tr></thead><tbody></tbody></table>
-        <p class="muted">NB : l’écriture est autorisée uniquement si l’utilisateur est listé dans la table <code>administrateur</code>.</p>
-      </section>
-
-      <!-- CALCULATEUR -->
-      <section id="tab-calculateur" style="display:none">
-        <div class="row">
-          <input type="date" id="calc-date">
-          <button class="btn" id="calc-refresh">Rafraîchir</button>
-        </div>
-        <table id="calc-table" style="margin-top:8px">
+      <!-- Colonne 2 : État actuel (lecture) -->
+      <section class="card">
+        <h2>État des équipes</h2>
+        <table id="etat-table">
           <thead>
             <tr>
-              <th>Jour</th><th>Matricule</th><th>Nom</th>
-              <th>Minutes</th><th>Sessions</th>
-              <th>Infractions</th><th>Classification</th><th>Prison/Caution</th>
-              <th>Amende</th><th>Garde à vue</th><th>Fouille intégrale</th>
-              <th>Audition</th><th>Jour fourrière</th><th>Peine complémentaire</th>
+              <th>Équipe</th><th>Conducteur</th><th>Radio</th><th>Coéquipier 1</th><th>Coéquipier 2</th><th>Véhicule</th><th>Statut</th><th>Notes</th><th>MAJ</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </section>
-    </main>
+    </div>
   </div>
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    // ============== CONFIG ==============
-    const SUPABASE_URL = "https://lmlzvszgiugxypizuien.supabase.co";       // <-- remplace
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtbHp2c3pnaXVneHlwaXp1aWVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTk5NjQsImV4cCI6MjA3MjYzNTk2NH0.z4E5aJ3mjU0KfYd-LUci-JM8u5sp6TjylSj3o_iWfVU";              // <-- remplace
+    // ---------- CONFIG SUPABASE ----------
+    const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";       // <-- remplace
+    const SUPABASE_ANON_KEY = "YOUR-PUBLIC-ANON-KEY";              // <-- remplace
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ============== UI helpers ==============
-    const $ = sel => document.querySelector(sel);
-    const $$ = sel => document.querySelectorAll(sel);
-    const pad2 = n => String(n).padStart(2,'0');
-    setInterval(()=>{
-      const d = new Date();
-      $("#clock").textContent = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-    }, 1000);
+    // ---------- PETITS HELPERS ----------
+    const $  = (s)=>document.querySelector(s);
+    const $$ = (s)=>document.querySelectorAll(s);
+    const pad2 = (n)=>String(n).padStart(2,'0');
+    setInterval(()=>{const d=new Date(); $("#clock").textContent = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`},1000);
 
-    // ============== Auth ==============
-    async function login() {
+    // ---------- AUTH ----------
+    $("#btn-login").onclick = async ()=>{
       const email = prompt("Email (Supabase Auth) ?");
-      const pwd = prompt("Mot de passe ?");
-      if (!email || !pwd) return;
-      const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
+      const pass  = prompt("Mot de passe ?");
+      if(!email || !pass) return;
+      const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
       if (error) alert(error.message);
-    }
-    async function logout() {
-      await supabase.auth.signOut();
-    }
-    supabase.auth.onAuthStateChange((_evt, session) => {
+    };
+    $("#btn-logout").onclick = async ()=>{ await supabase.auth.signOut(); };
+
+    supabase.auth.onAuthStateChange((_evt, session)=>{
       const u = session?.user;
-      $("#who").textContent = u ? `Connecté: ${u.email || u.id}` : "Non connecté";
+      $("#who").textContent = u ? `Connecté : ${u.email || u.id}` : "Non connecté";
       $("#btn-login").style.display = u ? "none" : "inline-block";
       $("#btn-logout").style.display = u ? "inline-block" : "none";
-      if (u) { initAll(); }
-    });
-    $("#btn-login").onclick = login;
-    $("#btn-logout").onclick = logout;
-
-    // ============== Onglets ==============
-    $$(".tab").forEach(t=>{
-      t.onclick = ()=> {
-        $$(".tab").forEach(x=>x.classList.remove('active'));
-        t.classList.add('active');
-        $("#tab-dispatch").style.display = t.dataset.tab==="dispatch" ? "block" : "none";
-        $("#tab-admin").style.display = t.dataset.tab==="admin" ? "block" : "none";
-        $("#tab-calculateur").style.display = t.dataset.tab==="calculateur" ? "block" : "none";
-      }
+      if (u) initAll();
     });
 
-    // ============== Effectifs + timers ==============
-    async function loadEffectifs() {
-      const { data, error } = await supabase.from("effectifs").select("*").order("nom");
-      if (error) { console.error(error); return; }
-      const cont = $("#effectifs-list"); cont.innerHTML = "";
-      (data||[]).forEach(e=>{
-        const running = !!e.en_cours_depuis;
-        const li = document.createElement('div');
-        li.className = "item";
-        li.innerHTML = `
+    // ---------- LISTES (effectifs / véhicules / status) ----------
+    async function fetchEffectifsActifs() {
+      const { data, error } = await supabase.from('effectifs').select('matricule,nom').eq('actif', true).order('nom');
+      if (error) { console.error(error); return []; }
+      return data || [];
+    }
+    async function fetchVehicules() {
+      const { data, error } = await supabase.from('vehicules').select('code,modele').order('code');
+      if (error) { console.error(error); return []; }
+      return data || [];
+    }
+    async function fetchStatus() {
+      const { data, error } = await supabase.from('status').select('key,label').order('ordre');
+      if (error) { console.error(error); return []; }
+      return data || [];
+    }
+
+    // ---------- CONSTRUCTION DES TUILES ----------
+    const TAGS = ["ADAM 01","ADAM 02","ADAM 03","ADAM 04","ADAM 05"];
+
+    function buildTile(tag) {
+      const el = document.createElement('div');
+      el.className = 'card tile';
+      el.innerHTML = `
+        <h3>${tag}</h3>
+        <div class="row">
           <div>
-            <div><b>${e.nom}</b> <span class="muted">#${e.matricule}</span> — ${e.grade||''}</div>
-            <div class="muted">Cumulé: <b>${e.minutes_cumules}</b> min ${running?'<span class="pill">EN COURS</span>':''}</div>
+            <label>Conducteur</label>
+            <select class="sel-conducteur"></select>
           </div>
-          <div class="right">
-            <button class="btn" data-act="${running?'stop':'start'}" data-m="${e.matricule}">${running?'Stop':'Start'}</button>
+          <div>
+            <label>Opérateur radio</label>
+            <select class="sel-radio"></select>
           </div>
-        `;
-        cont.appendChild(li);
+        </div>
+        <div class="row">
+          <div>
+            <label>Coéquipier 1</label>
+            <select class="sel-coequipier1"></select>
+          </div>
+          <div>
+            <label>Coéquipier 2</label>
+            <select class="sel-coequipier2"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Véhicule</label>
+            <select class="sel-vehicule"></select>
+          </div>
+          <div>
+            <label>Statut</label>
+            <select class="sel-status"></select>
+          </div>
+        </div>
+        <div>
+          <label>Notes</label>
+          <textarea class="txt-notes" placeholder="Notes…"></textarea>
+        </div>
+        <div class="right">
+          <button class="btn save-dispatch">Enregistrer</button>
+        </div>
+      `;
+      return el;
+    }
+
+    async function fillSelectsInTile(tile, effectifs, vehicules, statuses) {
+      const effOpts = '<option value="">— Choisir —</option>' + effectifs.map(e=>`<option value="${e.matricule}">${e.nom} (#${e.matricule})</option>`).join('');
+      const vehOpts = '<option value="">— Véhicule —</option>' + vehicules.map(v=>`<option value="${v.code}">${v.code} — ${v.modele}</option>`).join('');
+      const stOpts  = '<option value="">— Statut —</option>' + statuses.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+
+      tile.querySelector('.sel-conducteur').innerHTML = effOpts;
+      tile.querySelector('.sel-radio').innerHTML      = effOpts;
+      tile.querySelector('.sel-coequipier1').innerHTML= effOpts;
+      tile.querySelector('.sel-coequipier2').innerHTML= effOpts;
+
+      tile.querySelector('.sel-vehicule').innerHTML   = vehOpts;
+      tile.querySelector('.sel-status').innerHTML     = stOpts;
+    }
+
+    async function buildTiles() {
+      const container = $("#tiles");
+      container.innerHTML = "";
+      const [effectifs, vehicules, statuses] = await Promise.all([
+        fetchEffectifsActifs(), fetchVehicules(), fetchStatus()
+      ]);
+      TAGS.forEach(tag=>{
+        const t = buildTile(tag);
+        container.appendChild(t);
+        fillSelectsInTile(t, effectifs, vehicules, statuses);
       });
     }
-    $("#effectifs-list").onclick = async (ev)=>{
-      const btn = ev.target.closest('button[data-act]');
+
+    // ---------- ENREGISTREMENT ----------
+    document.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('.save-dispatch');
       if (!btn) return;
-      const mat = btn.dataset.m;
-      if (btn.dataset.act === 'start') {
-        await supabase.rpc('start_timer', { p_matricule: mat });
-      } else {
-        await supabase.rpc('stop_timer', { p_matricule: mat });
-      }
-    };
+      const tile = btn.closest('.tile');
+      const tag  = tile.querySelector('h3').textContent;
 
-    // Realtime : mise à jour auto si effectifs changent
-    supabase.channel('rt-effectifs')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'effectifs' }, loadEffectifs)
-      .subscribe();
-
-    // ============== Admin: CRUD Effectifs & Véhicules ==============
-    async function loadAdminTables() {
-      // Effectifs
-      const { data: eff } = await supabase.from('effectifs').select('*').order('nom');
-      const tbE = $("#ef-table tbody"); tbE.innerHTML = "";
-      (eff||[]).forEach(e=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${e.nom}</td><td>${e.matricule}</td><td>${e.grade||''}</td><td>${e.actif?'✔️':''}</td>`;
-        tr.onclick = ()=>{
-          $("#ef-nom").value = e.nom||'';
-          $("#ef-mat").value = e.matricule||'';
-          $("#ef-grade").value = e.grade||'';
-          $("#ef-actif").value = e.actif ? "true" : "false";
-        };
-        tbE.appendChild(tr);
-      });
-
-      // Véhicules
-      const { data: veh } = await supabase.from('vehicules').select('*').order('code');
-      const tbV = $("#vh-table tbody"); tbV.innerHTML = "";
-      (veh||[]).forEach(v=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${v.code}</td><td>${v.modele}</td>`;
-        tr.onclick = ()=>{
-          $("#vh-code").value = v.code||'';
-          $("#vh-modele").value = v.modele||'';
-        };
-        tbV.appendChild(tr);
-      });
-    }
-    $("#ef-save").onclick = async ()=>{
-      const row = {
-        nom: $("#ef-nom").value.trim(),
-        matricule: $("#ef-mat").value.trim(),
-        grade: $("#ef-grade").value.trim(),
-        actif: $("#ef-actif").value === "true"
+      const payload = {
+        p_tag: tag,
+        p_conducteur:  tile.querySelector('.sel-conducteur').value || null,
+        p_radio:       tile.querySelector('.sel-radio').value || null,
+        p_coequipier1: tile.querySelector('.sel-coequipier1').value || null,
+        p_coequipier2: tile.querySelector('.sel-coequipier2').value || null,
+        p_vehicule:    tile.querySelector('.sel-vehicule').value || null,
+        p_status:      tile.querySelector('.sel-status').value || null,
+        p_notes:       tile.querySelector('.txt-notes').value || null
       };
-      if (!row.matricule) return alert("Matricule requis");
-      // UPSERT
-      await supabase.from('effectifs').upsert(row, { onConflict: 'matricule' });
-      await loadEffectifs(); await loadAdminTables();
-    };
-    $("#ef-del").onclick = async ()=>{
-      const mat = $("#ef-mat").value.trim();
-      if (!mat) return alert("Matricule requis");
-      if (!confirm("Supprimer cet effectif ?")) return;
-      await supabase.from('effectifs').delete().eq('matricule', mat);
-      await loadEffectifs(); await loadAdminTables();
-    };
-    $("#vh-save").onclick = async ()=>{
-      const v = { code: $("#vh-code").value.trim(), modele: $("#vh-modele").value.trim() };
-      if (!v.code) return alert("Code requis");
-      await supabase.from('vehicules').upsert(v, { onConflict: 'code' });
-      await loadAdminTables();
-    };
-    $("#vh-del").onclick = async ()=>{
-      const code = $("#vh-code").value.trim();
-      if (!code) return alert("Code requis");
-      if (!confirm("Supprimer ce véhicule ?")) return;
-      await supabase.from('vehicules').delete().eq('code', code);
-      await loadAdminTables();
-    };
 
-    // ============== Calculateur ==============
-    async function loadCalculateur() {
-      const d = $("#calc-date").value; // yyyy-mm-dd ou vide
-      let q = supabase.from('v_calculateur').select('*').order('nom');
-      if (d) q = q.eq('jour', d);
-      const { data, error } = await q;
+      const { error } = await supabase.rpc('save_equipe', payload);
+      if (error) { alert("Erreur: " + error.message); return; }
+      btn.textContent = "Enregistré ✓";
+      setTimeout(()=> btn.textContent = "Enregistrer", 1200);
+      await loadEtat(); // rafraîchir le tableau de droite
+    });
+
+    // ---------- LECTURE (état actuel) ----------
+    async function loadEtat() {
+      const { data, error } = await supabase.from('v_equipes').select('*').order('tag');
       if (error) { console.error(error); return; }
-      const tb = $("#calc-table tbody"); tb.innerHTML = "";
+      const tb = $("#etat-table tbody"); tb.innerHTML = "";
       (data||[]).forEach(r=>{
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${r.jour}</td><td>${r.matricule}</td><td>${r.nom}</td>
-          <td>${r.minutes_total}</td><td>${r.sessions}</td>
-          <td>${r.infractions}</td><td>${r.classification||''}</td><td>${r["Prison/Caution"]||''}</td>
-          <td>${r.amende||0}</td><td>${r["Garde_a_vue"]||0}</td><td>${r["Fouille_integrale"]||0}</td>
-          <td>${r.audition||0}</td><td>${r["Jour_fourriere"]||0}</td><td>${r["Peine_complementaire"]||''}</td>
+          <td>${r.tag}</td>
+          <td>${r.conducteur_nom || ''}</td>
+          <td>${r.radio_nom || ''}</td>
+          <td>${r.coequipier1_nom || ''}</td>
+          <td>${r.coequipier2_nom || ''}</td>
+          <td>${r.vehicule ? `${r.vehicule} — ${r.vehicule_modele||''}` : ''}</td>
+          <td>${r.status_label || r.status || ''}</td>
+          <td>${r.notes || ''}</td>
+          <td>${new Date(r.updated_at).toLocaleString()}</td>
         `;
         tb.appendChild(tr);
       });
     }
-    $("#calc-refresh").onclick = async ()=>{
-      // Si tu viens d’ajouter des sessions, pense à rafraîchir la MV côté serveur :
-      // await supabase.rpc('refresh_heures_par_jour');
-      await loadCalculateur();
-    };
-    // Realtime: si heures ou effectifs changent, on peut relire la vue
-    supabase.channel('rt-heures')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'compteur_heures' }, loadCalculateur)
+
+    // ---------- TEMPS RÉEL ----------
+    supabase.channel('rt-equipes')
+      .on('postgres_changes', { event:'*', schema:'public', table:'equipes' }, loadEtat)
       .subscribe();
 
-    // ============== “Tuiles” Dispatch (exemple visuel) ==============
-    const TILES = ['ADAM 01','ADAM 02','ADAM 03'];
-    function buildTiles() {
-      const grid = $("#tiles"); grid.innerHTML = "";
-      TILES.forEach(tag=>{
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <h3>${tag}</h3>
-          <div class="row">
-            <select class="sel-cond"></select>
-            <select class="sel-copi"></select>
-          </div>
-          <div class="row" style="margin-top:8px">
-            <select class="sel-veh"></select>
-            <select class="sel-status">
-              <option value="">— Statut —</option>
-              <option>Disponible</option>
-              <option>En patrouille</option>
-              <option>En pause</option>
-              <option>Indisponible</option>
-            </select>
-          </div>
-          <textarea class="txt-notes" placeholder="Notes…" style="margin-top:8px"></textarea>
-          <div class="right" style="margin-top:8px">
-            <button class="btn">Enregistrer</button>
-          </div>
-          <p class="muted" style="margin:6px 0 0">À brancher si tu ajoutes la table “équipes”.</p>
-        `;
-        grid.appendChild(card);
-      });
-      // Remplit les selects avec les données actuelles :
-      fillTileSelects();
-    }
-    async function fillTileSelects() {
-      const { data: eff } = await supabase.from('effectifs').select('matricule,nom').eq('actif', true).order('nom');
-      const { data: veh } = await supabase.from('vehicules').select('code,modele').order('code');
-      $$("#tiles .sel-cond, #tiles .sel-copi").forEach(sel=>{
-        sel.innerHTML = '<option value="">— Effectif —</option>' + (eff||[]).map(e=>`<option value="${e.matricule}">${e.nom} (#${e.matricule})</option>`).join('');
-      });
-      $$("#tiles .sel-veh").forEach(sel=>{
-        sel.innerHTML = '<option value="">— Véhicule —</option>' + (veh||[]).map(v=>`<option value="${v.code}">${v.code} — ${v.modele}</option>`).join('');
-      });
-    }
-
-    // ============== Init tout ==============
+    // ---------- INIT ----------
     async function initAll() {
-      await loadEffectifs();
-      await loadAdminTables();
-      buildTiles();
-      await loadCalculateur();
+      await buildTiles();
+      await loadEtat();
     }
 
-    // Démarrage (si déjà connecté, on init) :
+    // Si déjà connecté (refresh)
     (async ()=>{
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) initAll();
     })();
-
-    // Date du jour par défaut
-    const today = new Date().toISOString().slice(0,10);
-    $("#calc-date").value = today;
   </script>
 </body>
 </html>
