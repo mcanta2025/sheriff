@@ -87,3 +87,31 @@ h1,h2,h3{margin:6px 0 10px}
 .equipe-tile .btn{padding:4px 8px;font-size:12px}
 
 footer{padding:24px 16px;color:var(--muted);text-align:center}
+
+.orga-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px,1fr));
+  gap:16px;
+}
+.team-card{
+  background: var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+  font-size:13px;
+}
+.team-card h4{
+  margin:0 0 6px;
+  color:var(--gold);
+}
+.team-card .status{
+  font-weight:bold;
+  padding:2px 6px;
+  border-radius:6px;
+  font-size:12px;
+  display:inline-block;
+  margin-bottom:6px;
+}
+.status-dispo{background:var(--success);color:#000}
+.status-patrol{background:var(--warn);color:#000}
+.status-indispo{background:var(--danger);color:#fff}
