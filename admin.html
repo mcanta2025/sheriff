@@ -6,7 +6,7 @@
   <title>Administration — Saint-Georges Sheriff</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    /* Accordéon minimal, s'appuie sur tes styles existants */
+    /* Accordéon minimal, compatible avec ton thème */
     details.card { padding:0 }
     details.card > summary {
       list-style:none; cursor:pointer; user-select:none;
@@ -15,7 +15,6 @@
       background:radial-gradient(1200px 600px at 10% -10%, #1a1b1e 0%, var(--panel) 35%, var(--panel-2) 100%);
       border-radius:16px 16px 0 0;
     }
-    details.card[open] > summary { border-bottom:1px solid var(--line) }
     details.card > .content { padding:16px }
     .chev { opacity:.7; transition:transform .15s ease }
     details[open] .chev { transform:rotate(90deg) }
@@ -23,6 +22,7 @@
     .equipe-tile input, .equipe-tile textarea { width:100% }
     .row2 { display:grid; grid-template-columns:1fr 1fr; gap:6px }
     .actions { display:flex; justify-content:flex-end; gap:6px; margin-top:6px }
+    .muted.small { font-size:12px }
   </style>
 </head>
 <body>
@@ -81,7 +81,7 @@
           <div class="actions">
             <button id="btn-user-create" class="btn gold">Créer le compte</button>
           </div>
-          <p class="muted" style="margin:6px 0 0">L’inscription par mot de passe doit être activée côté Auth.</p>
+          <p class="muted small">L’inscription par mot de passe doit être activée côté Auth.</p>
         </div>
       </div>
     </div>
@@ -178,11 +178,16 @@
       <div class="spread">
         <button class="btn gold" id="btn-reset-week">Reset semaine</button>
       </div>
-      <p class="muted" style="margin-top:8px">
-        Essaie d’abord la RPC <code>reset_compteurs_semaine()</code>.  
-        Fallback : tentatives sur <code>compteurs/compteur</code> et colonnes <code>semaine_minutes</code>, <code>semaine</code>, <code>minutes_semaine</code>.
+      <p class="muted small" style="margin-top:8px">
+        La RPC <code>reset_compteurs_semaine()</code> est tentée en premier.  
+        Sinon, le script essaie plusieurs combinaisons table/colonne.  
+        <b>Idéal :</b> définis ci-dessous la table/colonne exactes pour le reset.
       </p>
-      <div id="reset-result" class="muted"></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:8px; margin-top:8px">
+        <input id="reset-table" placeholder="Nom table ex: compteurs (optionnel)" />
+        <input id="reset-col"   placeholder="Nom colonne ex: semaine_minutes (optionnel)" />
+      </div>
+      <div id="reset-result" class="muted" style="margin-top:6px"></div>
     </div>
   </details>
 </main>
@@ -192,24 +197,65 @@
 <script type="module">
   import { supabase, startClock, bindHeaderAuth } from "./common.js";
 
-  // Tables (change les noms ici si besoin)
-  const TBL_GRADES      = "grades";
-  const TBL_EFFECTIFS   = "effectifs";
-  const TBL_INFRACTIONS = "calculateur";
-  const TBL_VEHICULES   = "vehicules";
-  // Compteurs : le script va tenter plusieurs combos
-  const COMPTEUR_TABLES = ["compteurs","compteur"];
-  const COMPTEUR_COLS   = ["semaine_minutes","semaine","minutes_semaine"];
+  /* =================== CONFIG (adapte au besoin) =================== */
+  const CONFIG = {
+    tables: {
+      grades:      "grades",
+      effectifs:   "effectifs",
+      infractions: "calculateur",
+      vehicules:   "vehicules",
+      profiles:    "profiles"
+    },
+    keys: {
+      // Clés candidates pour identifier un effectif
+      effectifsPKCandidates: ["id","id_effectif","effectif_id","eid","uid","matricule","mat"],
+      // Mapping possible pour véhicules (détection par ligne)
+      vehicules: {
+        id:      ["id","ID","vehicule_id","vehicle_id"],
+        plaque:  ["plaque","immatriculation","plate","registration","immat","reg"],
+        modele:  ["modele","model","modèle"],
+        couleur: ["couleur","color","colour"],
+        statut:  ["statut","status","state"]
+      }
+    },
+    reset: {
+      rpc: "reset_compteurs_semaine",
+      // Si tu connais les vrais noms, fixe-les ici, sinon laisse null pour autodétection
+      table: null, // ex: "compteurs"
+      col:   null, // ex: "semaine_minutes"
+      // valeurs essayées si pas d'override
+      tableCandidates: ["compteurs","compteur"],
+      colCandidates:   ["semaine_minutes","semaine","minutes_semaine"]
+    }
+  };
 
-  // Header
+  /* =================== Header / Auth =================== */
   startClock();
   bindHeaderAuth();
 
-  // Helpers DOM
-  const $ = (id)=>document.getElementById(id);
-  const money = (n)=> `$${Number(n||0).toLocaleString()}`;
+  // Accordéon: ne garder ouvert qu'un seul bloc à la fois
+  document.querySelectorAll("details.card > summary").forEach(sum=>{
+    sum.addEventListener("click", (e)=>{
+      const d = sum.parentElement;
+      if (!d.open) {
+        document.querySelectorAll("details.card[open]").forEach(o=>{ if(o!==d) o.removeAttribute("open"); });
+      }
+    });
+  });
 
-  // === Guard Admin via RPC is_admin (si tu l'as créée), sinon laisser passer temporairement
+  // Petit flash message
+  function flash(msg, type="info"){
+    const clr = type==="error" ? "badge badge-red" : type==="ok" ? "badge badge-green" : "badge";
+    const x = document.createElement("div");
+    x.innerHTML = `<span class="${clr}" style="display:inline-block; margin:8px 0">${msg}</span>`;
+    document.body.appendChild(x);
+    setTimeout(()=>x.remove(), 3500);
+  }
+
+  // Helper DOM
+  const $ = (id)=>document.getElementById(id);
+
+  /* =================== Guard Admin =================== */
   async function ensureAdmin(){
     const { data: { user } } = await supabase.auth.getUser();
     const guard = $("admin-guard"), login = $("admin-login");
@@ -218,44 +264,44 @@
     if (!user){
       login.style.display = ""; guard.style.display = "none";
       sections.forEach(s=>s.style.display="none");
+      $("btn-login-do").onclick = async ()=>{
+        const email = $("login-email").value.trim();
+        const password = $("login-pass").value.trim();
+        if (!email || !password) return alert("Email et mot de passe requis.");
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) return alert(error.message);
+        location.reload();
+      };
       return false;
     }
-    // Essaye RPC is_admin, sinon passe (pour éviter blocage si RPC absente)
-    try {
-      const { data, error } = await supabase.rpc("is_admin");
-      if (error) throw error;
-      if (!data) throw new Error("not-admin");
-    } catch(e){
-      // si la RPC n'existe pas, on ne bloque pas (à activer si tu veux forcer)
-      if (e.message === "not-admin"){
-        login.style.display = "none"; guard.style.display = "";
-        sections.forEach(s=>s.style.display="none");
-        return false;
-      }
+    // Check via RPC is_admin si dispo, sinon fallback via profiles.role
+    let ok = false;
+    try { const { data } = await supabase.rpc("is_admin"); ok = !!data; } catch {}
+    if (!ok){
+      try{
+        const { data } = await supabase.from(CONFIG.tables.profiles).select("role").eq("id", user.id).maybeSingle();
+        ok = (data?.role || "").toLowerCase() === "admin";
+      }catch{}
+    }
+    if (!ok){
+      login.style.display = "none"; guard.style.display = "";
+      sections.forEach(s=>s.style.display="none");
+      return false;
     }
     login.style.display = "none"; guard.style.display = "none";
     sections.forEach(s=>s.style.display="");
     return true;
   }
 
-  // Login inline
-  $("btn-login-do")?.addEventListener("click", async ()=>{
-    const email = $("login-email").value.trim();
-    const password = $("login-pass").value.trim();
-    if (!email || !password) return alert("Email et mot de passe requis.");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return alert(error.message);
-    location.reload();
-  });
-
-  // Fabrique une tuile simple
+  /* =================== Utils =================== */
+  const money = (n)=> `$${Number(n||0).toLocaleString()}`;
   function makeTile(fields, actionsHTML){
     const wrap = document.createElement("div");
     wrap.className = "equipe-tile";
     let inner = "";
     fields.forEach(f=>{
       inner += `<div style="margin-bottom:6px">
-        <label class="muted" style="font-size:12px">${f.label||""}</label>
+        <label class="muted small">${f.label||""}</label>
         <input ${f.type==='number'?'type="number"':''} class="f" data-k="${f.key}" value="${f.value ?? ''}" placeholder="${f.placeholder||''}" />
       </div>`;
     });
@@ -263,27 +309,50 @@
     wrap.innerHTML = inner;
     return wrap;
   }
+  function resolveKey(row, candidates){
+    for (const k of candidates){
+      if (row && Object.prototype.hasOwnProperty.call(row, k) && row[k] != null) return { col:k, val:row[k] };
+    }
+    return { col:null, val:null };
+  }
+  function keyMapFromRow(row, dict){
+    const lower = Object.fromEntries(Object.keys(row||{}).map(k=>[k.toLowerCase(), k]));
+    const pick = (list)=> list.map(x=>x.toLowerCase()).map(x=>lower[x]).find(Boolean);
+    return {
+      id:      pick(dict.id || []),
+      plaque:  pick(dict.plaque || []),
+      modele:  pick(dict.modele || []),
+      couleur: pick(dict.couleur|| []),
+      statut:  pick(dict.statut || []),
+    };
+  }
 
-  /* ===================== GRADES ===================== */
+  /* =================== GRADES =================== */
   async function loadGrades(){
     const box = $("tiles-grades"); box.innerHTML = "";
-    const { data, error } = await supabase.from(TBL_GRADES).select("*").order("ordre",{ascending:true});
+    const { data, error } = await supabase.from(CONFIG.tables.grades).select("*").order("ordre",{ascending:true});
     if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
     (data||[]).forEach(row=>{
       const tile = makeTile([
         {key:"ordre", label:"Ordre", value:row.ordre, type:"number", placeholder:"ex: 30"},
         {key:"label", label:"Intitulé", value:row.label, placeholder:"ex: Sergent"},
       ], `<button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button>`);
+      const idcol = resolveKey(row, ["id","grade_id","ID"]).col;
       tile.querySelector(".act-save").onclick = async ()=>{
         const ordre = Number(tile.querySelector('[data-k="ordre"]').value||0);
         const label = tile.querySelector('[data-k="label"]').value.trim();
-        const { error } = await supabase.from(TBL_GRADES).update({ ordre, label }).eq("id", row.id ?? row.ID ?? row.grade_id);
-        if (error) alert(error.message); else loadGrades();
+        const q = supabase.from(CONFIG.tables.grades).update({ ordre, label }).eq(idcol, row[idcol]).select();
+        const { data:ret, error } = await q;
+        if (error) return alert(error.message);
+        if (!ret?.length) return alert("Aucune ligne modifiée (RLS ?).");
+        loadGrades(); flash("Grade enregistré","ok");
       };
       tile.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer ce grade ?")) return;
-        const { error } = await supabase.from(TBL_GRADES).delete().eq("id", row.id ?? row.ID ?? row.grade_id);
-        if (error) alert(error.message); else loadGrades();
+        const { data:ret, error } = await supabase.from(CONFIG.tables.grades).delete().eq(idcol, row[idcol]).select();
+        if (error) return alert(error.message);
+        if (!ret?.length) return alert("Aucune ligne supprimée (RLS ?).");
+        loadGrades(); flash("Grade supprimé","ok");
       };
       box.appendChild(tile);
     });
@@ -292,26 +361,17 @@
     const label = $("grade-label").value.trim();
     const ordre = Number($("grade-ordre").value||0);
     if (!label) return alert("Intitulé requis.");
-    const { error } = await supabase.from(TBL_GRADES).insert({ label, ordre });
+    const { data, error } = await supabase.from(CONFIG.tables.grades).insert({ label, ordre }).select();
     if (error) return alert(error.message);
+    if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
     $("grade-label").value=""; $("grade-ordre").value="";
-    loadGrades();
+    loadGrades(); flash("Grade ajouté","ok");
   };
 
-  /* ========== EFFECTIFS – PK ADAPTATIVE (id/matricule/…) ========== */
-  function pkOfEffectif(row){
-    const candidates = ["id","id_effectif","effectif_id","eid","uid","matricule","mat"];
-    for (const k of candidates){
-      if (row && Object.prototype.hasOwnProperty.call(row, k) && row[k] != null){
-        return { col:k, val:row[k] };
-      }
-    }
-    return { col:null, val:null };
-  }
-
+  /* =================== EFFECTIFS =================== */
   async function loadEffectifs(){
     const box = $("tiles-effectifs"); box.innerHTML = "";
-    const { data, error } = await supabase.from(TBL_EFFECTIFS).select("*").order("matricule",{ascending:true});
+    const { data, error } = await supabase.from(CONFIG.tables.effectifs).select("*").order("matricule",{ascending:true});
     if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
     (data||[]).forEach(row=>{
       const tile = makeTile([
@@ -319,42 +379,34 @@
         {key:"nom",       label:"Nom",       value:row.nom ?? row.NOM ?? "",           placeholder:"Doe John"},
         {key:"grade",     label:"Grade",     value:row.grade ?? row.GRADE ?? "",       placeholder:"Sergent"},
       ], `<button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button>`);
+      const { col:pk, val } = resolveKey(row, CONFIG.keys.effectifsPKCandidates);
 
       tile.querySelector(".act-save").onclick = async ()=>{
-        const matricule = tile.querySelector('[data-k="matricule"]').value.trim();
-        const nom       = tile.querySelector('[data-k="nom"]').value.trim();
-        const grade     = tile.querySelector('[data-k="grade"]').value.trim();
+        const payload = {
+          matricule: tile.querySelector('[data-k="matricule"]').value.trim(),
+          nom:       tile.querySelector('[data-k="nom"]').value.trim(),
+          grade:     tile.querySelector('[data-k="grade"]').value.trim()
+        };
+        let res;
+        if (pk) res = await supabase.from(CONFIG.tables.effectifs).update(payload).eq(pk, val).select();
+        else if (row.matricule) res = await supabase.from(CONFIG.tables.effectifs).update(payload).eq("matricule", row.matricule).select();
+        else return alert("Impossible d’identifier la ligne (clé).");
 
-        const { col, val } = pkOfEffectif(row);
-        try{
-          if (col && val != null){
-            const { error } = await supabase.from(TBL_EFFECTIFS).update({ matricule, nom, grade }).eq(col, val);
-            if (error) throw error;
-          } else if (row.matricule){
-            const { error } = await supabase.from(TBL_EFFECTIFS).update({ matricule, nom, grade }).eq("matricule", row.matricule);
-            if (error) throw error;
-          } else {
-            return alert("Impossible d’identifier la ligne (aucune clé détectée).");
-          }
-          loadEffectifs();
-        }catch(e){ alert("Erreur: "+e.message); }
+        if (res.error) return alert(res.error.message);
+        if (!res.data?.length) return alert("Aucune ligne modifiée (RLS ?).");
+        loadEffectifs(); flash("Effectif enregistré","ok");
       };
 
       tile.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer cet effectif ?")) return;
-        const { col, val } = pkOfEffectif(row);
-        try{
-          if (col && val != null){
-            const { error } = await supabase.from(TBL_EFFECTIFS).delete().eq(col, val);
-            if (error) throw error;
-          } else if (row.matricule){
-            const { error } = await supabase.from(TBL_EFFECTIFS).delete().eq("matricule", row.matricule);
-            if (error) throw error;
-          } else {
-            return alert("Impossible d’identifier la ligne (aucune clé détectée).");
-          }
-          loadEffectifs();
-        }catch(e){ alert("Erreur: "+e.message); }
+        let res;
+        if (pk) res = await supabase.from(CONFIG.tables.effectifs).delete().eq(pk, val).select();
+        else if (row.matricule) res = await supabase.from(CONFIG.tables.effectifs).delete().eq("matricule", row.matricule).select();
+        else return alert("Impossible d’identifier la ligne (clé).");
+
+        if (res.error) return alert(res.error.message);
+        if (!res.data?.length) return alert("Aucune ligne supprimée (RLS ?).");
+        loadEffectifs(); flash("Effectif supprimé","ok");
       };
 
       box.appendChild(tile);
@@ -365,16 +417,17 @@
     const matricule = $("eff-matricule").value.trim();
     const grade = $("eff-grade").value.trim();
     if (!nom || !matricule) return alert("Nom et Matricule requis.");
-    const { error } = await supabase.from(TBL_EFFECTIFS).insert({ nom, matricule, grade });
+    const { data, error } = await supabase.from(CONFIG.tables.effectifs).insert({ nom, matricule, grade }).select();
     if (error) return alert(error.message);
+    if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
     $("eff-nom").value=""; $("eff-matricule").value=""; $("eff-grade").value="";
-    loadEffectifs();
+    loadEffectifs(); flash("Effectif ajouté","ok");
   };
 
-  /* ===================== INFRACTIONS ===================== */
+  /* =================== INFRACTIONS =================== */
   async function loadInfractions(){
     const box = $("tiles-infractions"); box.innerHTML = "";
-    const { data, error } = await supabase.from(TBL_INFRACTIONS)
+    const { data, error } = await supabase.from(CONFIG.tables.infractions)
       .select("id, category, infraction, classification, amende, jour_fourriere, peine_compl")
       .order("category",{ascending:true}).order("infraction",{ascending:true});
     if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
@@ -386,6 +439,8 @@
         {key:"amende",          label:"Amende",           value:row.amende,          type:"number", placeholder:"500"},
         {key:"jour_fourriere",  label:"Jours fourrière",  value:row.jour_fourriere,  type:"number", placeholder:"0"},
       ], `<button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button>`);
+      const idcol = resolveKey(row, ["id","ID"]).col;
+
       tile.querySelector(".act-save").onclick = async ()=>{
         const payload = {
           category:       tile.querySelector('[data-k="category"]').value.trim(),
@@ -394,17 +449,19 @@
           amende:         Number(tile.querySelector('[data-k="amende"]').value||0),
           jour_fourriere: Number(tile.querySelector('[data-k="jour_fourriere"]').value||0),
         };
-        const idcol = (row.id!=null) ? "id" : (row.ID!=null ? "ID" : null);
-        if (!idcol) { alert("Ligne sans identifiant (colonne id manquante)."); return; }
-        const { error } = await supabase.from(TBL_INFRACTIONS).update(payload).eq(idcol, row[idcol]);
-        if (error) alert(error.message); else loadInfractions();
+        if (!idcol) return alert("Ligne sans identifiant (colonne id manquante).");
+        const { data:ret, error } = await supabase.from(CONFIG.tables.infractions).update(payload).eq(idcol, row[idcol]).select();
+        if (error) return alert(error.message);
+        if (!ret?.length) return alert("Aucune ligne modifiée (RLS ?).");
+        loadInfractions(); flash("Infraction enregistrée","ok");
       };
       tile.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer cette infraction ?")) return;
-        const idcol = (row.id!=null) ? "id" : (row.ID!=null ? "ID" : null);
-        if (!idcol) { alert("Ligne sans identifiant (colonne id manquante)."); return; }
-        const { error } = await supabase.from(TBL_INFRACTIONS).delete().eq(idcol, row[idcol]);
-        if (error) alert(error.message); else loadInfractions();
+        if (!idcol) return alert("Ligne sans identifiant (colonne id manquante).");
+        const { data:ret, error } = await supabase.from(CONFIG.tables.infractions).delete().eq(idcol, row[idcol]).select();
+        if (error) return alert(error.message);
+        if (!ret?.length) return alert("Aucune ligne supprimée (RLS ?).");
+        loadInfractions(); flash("Infraction supprimée","ok");
       };
       box.appendChild(tile);
     });
@@ -419,73 +476,57 @@
       peine_compl:    $("inf-peines").value.trim() || null,
     };
     if (!payload.category || !payload.infraction) return alert("Catégorie et libellé requis.");
-    const { error } = await supabase.from(TBL_INFRACTIONS).insert(payload);
+    const { data, error } = await supabase.from(CONFIG.tables.infractions).insert(payload).select();
     if (error) return alert(error.message);
+    if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
     ["inf-cat","inf-name","inf-classif","inf-amende","inf-fourriere","inf-peines"].forEach(id=>$(id).value="");
-    loadInfractions();
+    loadInfractions(); flash("Infraction ajoutée","ok");
   };
 
-  /* ======== VÉHICULES – auto-mapping des colonnes ======== */
-  function vehMapKeys(sample){
-    // Essaye de trouver les clés correspondantes avec plusieurs noms possibles
-    const keys = Object.keys(sample||{}).reduce((acc,k)=>{ acc[k.toLowerCase()] = k; return acc; },{});
-    const find = (...alts)=> alts.map(s=>s.toLowerCase()).map(a=>keys[a]).find(Boolean);
-
-    const kPlaque = find("plaque","plate","immatriculation","registration","reg","immat");
-    const kModele = find("modele","model","modèle");
-    const kCouleur= find("couleur","color","colour");
-    const kStatut = find("statut","status","state");
-
-    return { kPlaque, kModele, kCouleur, kStatut };
-  }
-
+  /* =================== VÉHICULES =================== */
   async function loadVehicules(){
     const box = $("tiles-veh"); box.innerHTML = "";
-    const { data, error } = await supabase.from(TBL_VEHICULES).select("*");
+    const { data, error } = await supabase.from(CONFIG.tables.vehicules).select("*");
     if (error){ box.innerHTML = `<div class="muted">Erreur: ${error.message}</div>`; return; }
     const rows = data||[];
-    const map = rows.length ? vehMapKeys(rows[0]) : {kPlaque:"plaque", kModele:"modele", kCouleur:"couleur", kStatut:"statut"};
+    const map = rows.length ? keyMapFromRow(rows[0], CONFIG.keys.vehicules) : { id:"id", plaque:"plaque", modele:"modele", couleur:"couleur", statut:"statut" };
 
     rows.forEach(row=>{
       const tile = makeTile([
-        {key:"plaque",  label:"Plaque",  value: row[map.kPlaque]  ?? "", placeholder:"SG-123-XX"},
-        {key:"modele",  label:"Modèle",  value: row[map.kModele]  ?? "", placeholder:"Interceptor"},
-        {key:"couleur", label:"Couleur", value: row[map.kCouleur] ?? "", placeholder:"Noir"},
-        {key:"statut",  label:"Statut",  value: row[map.kStatut]  ?? "", placeholder:"service/garage"},
+        {key:"plaque",  label:"Plaque",  value: row[map.plaque]  ?? "", placeholder:"SG-123-XX"},
+        {key:"modele",  label:"Modèle",  value: row[map.modele]  ?? "", placeholder:"Interceptor"},
+        {key:"couleur", label:"Couleur", value: row[map.couleur] ?? "", placeholder:"Noir"},
+        {key:"statut",  label:"Statut",  value: row[map.statut]  ?? "", placeholder:"service/garage"},
       ], `<button class="btn ghost act-save">Enregistrer</button><button class="btn act-del">Supprimer</button>`);
 
-      const idCol = row.id!=null ? "id" : (row.ID!=null ? "ID" : null);
-
+      const idcol = map.id; // on exige une clé id-like pour update/delete fiables
       tile.querySelector(".act-save").onclick = async ()=>{
         const payload = {
-          [map.kPlaque || "plaque"]:  tile.querySelector('[data-k="plaque"]').value.trim(),
-          [map.kModele || "modele"]:  tile.querySelector('[data-k="modele"]').value.trim(),
-          [map.kCouleur|| "couleur"]: tile.querySelector('[data-k="couleur"]').value.trim(),
-          [map.kStatut || "statut"]:  tile.querySelector('[data-k="statut"]').value.trim(),
+          [map.plaque || "plaque"]:  tile.querySelector('[data-k="plaque"]').value.trim(),
+          [map.modele || "modele"]:  tile.querySelector('[data-k="modele"]').value.trim(),
+          [map.couleur|| "couleur"]: tile.querySelector('[data-k="couleur"]').value.trim(),
+          [map.statut || "statut"]:  tile.querySelector('[data-k="statut"]').value.trim(),
         };
-        try{
-          if (!idCol) throw new Error("Pas de colonne identifiant (id) sur la table véhicules.");
-          const { error } = await supabase.from(TBL_VEHICULES).update(payload).eq(idCol, row[idCol]);
-          if (error) throw error;
-          loadVehicules();
-        }catch(e){ alert("Erreur: "+e.message); }
+        if (!idcol) return alert("Pas de colonne identifiant (id) sur la table véhicules.");
+        const { data:ret, error } = await supabase.from(CONFIG.tables.vehicules).update(payload).eq(idcol, row[idcol]).select();
+        if (error) return alert(error.message);
+        if (!ret?.length) return alert("Aucune ligne modifiée (RLS ?).");
+        loadVehicules(); flash("Véhicule enregistré","ok");
       };
-
       tile.querySelector(".act-del").onclick = async ()=>{
         if (!confirm("Supprimer ce véhicule ?")) return;
-        try{
-          if (!idCol) throw new Error("Pas de colonne identifiant (id) sur la table véhicules.");
-          const { error } = await supabase.from(TBL_VEHICULES).delete().eq(idCol, row[idCol]);
-          if (error) throw error;
-          loadVehicules();
-        }catch(e){ alert("Erreur: "+e.message); }
+        if (!idcol) return alert("Pas de colonne identifiant (id) sur la table véhicules.");
+        const { data:ret, error } = await supabase.from(CONFIG.tables.vehicules).delete().eq(idcol, row[idcol]).select();
+        if (error) return alert(error.message);
+        if (!ret?.length) return alert("Aucune ligne supprimée (RLS ?).");
+        loadVehicules(); flash("Véhicule supprimé","ok");
       };
 
       box.appendChild(tile);
     });
   }
   $("btn-veh-add").onclick = async ()=>{
-    // On insère avec les champs "standards" ; si tes colonnes ont d'autres noms, adapte ici
+    // Insertion avec champs "standards". Si tes colonnes diffèrent, adapte ici.
     const payload = {
       plaque:  $("veh-plaque").value.trim(),
       modele:  $("veh-modele").value.trim(),
@@ -493,43 +534,61 @@
       statut:  $("veh-statut").value.trim()
     };
     if (!payload.plaque || !payload.modele) return alert("Plaque et Modèle requis.");
-    const { error } = await supabase.from(TBL_VEHICULES).insert(payload);
-    if (error) return alert(error.message + " (si tes colonnes ont d'autres noms, dis-les moi et j'adapte)");
+    const { data, error } = await supabase.from(CONFIG.tables.vehicules).insert(payload).select();
+    if (error) return alert(error.message);
+    if (!data?.length) return alert("Insertion non autorisée (RLS ?).");
     ["veh-plaque","veh-modele","veh-couleur","veh-statut"].forEach(id=>$(id).value="");
-    loadVehicules();
+    loadVehicules(); flash("Véhicule ajouté","ok");
   };
 
-  /* ============ RESET semaine – RPC + fallback adaptatif ============ */
+  /* =================== RESET semaine =================== */
+  async function doReset(table, col){
+    const { error } = await supabase.from(table).update({ [col]: 0 }).select();
+    if (error) throw error;
+    return `${table}.${col} = 0`;
+  }
   async function resetSemaine(){
     const out = $("reset-result");
+    const overrideTable = $("reset-table").value.trim() || CONFIG.reset.table;
+    const overrideCol   = $("reset-col").value.trim()   || CONFIG.reset.col;
     out.textContent = "Traitement en cours…";
+
     // 1) RPC prioritaire
     try{
-      const { data, error } = await supabase.rpc("reset_compteurs_semaine");
+      const { error } = await supabase.rpc(CONFIG.reset.rpc);
       if (error) throw error;
       out.textContent = "Reset effectué via RPC reset_compteurs_semaine().";
+      flash("Reset semaine effectué","ok");
       return;
-    }catch(e){
-      console.warn("RPC reset_compteurs_semaine:", e.message);
+    }catch(e){ out.textContent = `RPC indisponible: ${e.message}. Tentative fallback…`; }
+
+    // 2) Overrides si fournis
+    if (overrideTable && overrideCol){
+      try{
+        const msg = await doReset(overrideTable, overrideCol);
+        out.textContent = `Reset effectué sur ${msg}`;
+        flash("Reset semaine effectué","ok");
+        return;
+      }catch(e){ out.textContent = `Échec override ${overrideTable}.${overrideCol} → ${e.message}`; }
     }
-    // 2) Fallbacks : tables/colonnes connues
-    for (const table of COMPTEUR_TABLES){
-      for (const col of COMPTEUR_COLS){
+
+    // 3) Probes
+    for (const t of CONFIG.reset.tableCandidates){
+      for (const c of CONFIG.reset.colCandidates){
         try{
-          const payload = { [col]: 0 };
-          const { error } = await supabase.from(table).update(payload);
-          if (!error){
-            out.textContent = `Reset effectué sur ${table}.${col} = 0.`;
-            return;
-          }
-        }catch(e){ /* ignore et continue */ }
+          const msg = await doReset(t, c);
+          out.textContent = `Reset effectué sur ${msg}`;
+          flash("Reset semaine effectué","ok");
+          return;
+        }catch(e){ /* on continue */ }
       }
     }
-    out.textContent = "Échec du reset (ni RPC ni fallback). Vérifie la DB : table (compteurs/compteur) et colonne (semaine_minutes/semaine/minutes_semaine).";
+    out.textContent = "Échec du reset (ni RPC ni fallback). Vérifie le nom de la table et de la colonne, ou renseigne-les ci-dessus.";
+    flash("Reset semaine échoué","error");
   }
   $("btn-reset-week").onclick = resetSemaine;
 
-  /* ===================== BOOT ===================== */
+  /* =================== BOOT =================== */
   if (await ensureAdmin()){
     await Promise.all([loadGrades(), loadEffectifs(), loadInfractions(), loadVehicules()]);
   }
