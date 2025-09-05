@@ -3,29 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dispatch – Supabase</title>
+  <title>Central Dispatch</title>
   <style>
     :root{--bg:#0f0f10;--panel:#17181a;--muted:#a7a7a7;--accent:#ffd166;--fg:#fff;--line:#232428}
     *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial}
     header{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:#0c0c0d}
     .badge{background:var(--accent);color:#000;font-weight:700;border-radius:10px;padding:6px 10px}
     .muted{color:var(--muted)}
-    .wrap{padding:16px;max-width:1200px;margin:0 auto}
+    .wrap{padding:16px;max-width:1280px;margin:0 auto}
     .grid{display:grid;gap:16px}
-    @media(min-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media(min-width:1024px){.grid{grid-template-columns:1.1fr .9fr}}
     .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
     h2,h3{margin:6px 0 10px}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
     select,textarea,input{width:100%;background:#0d0d0e;border:1px solid var(--line);border-radius:10px;color:#fff;padding:8px}
-    textarea{min-height:70px;resize:vertical}
+    textarea{min-height:60px;resize:vertical}
     .btn{background:#1f1f22;border:1px solid #2a2a2f;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer}
     .btn:hover{background:#26262b}
     .right{display:flex;gap:8px;align-items:center}
-    .tile{display:flex;flex-direction:column;gap:10px}
-    .status{display:flex;gap:10px}
     table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+    th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+    .tile{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+    .tiles{display:grid;gap:12px}
+    @media(min-width:900px){.tiles{grid-template-columns:repeat(2,1fr)}}
     .ok{color:#22c55e}.warn{color:#eab308}.err{color:#ef4444}
   </style>
 </head>
@@ -44,20 +44,28 @@
 
   <div class="wrap">
     <div class="grid">
-      <!-- Colonne 1 : Tuiles Dispatch -->
+      <!-- COLONNE GAUCHE : Tuiles Dispatch -->
       <section class="card">
         <h2>Dispatch</h2>
-        <p class="muted">Sélectionne les effectifs et le véhicule, puis clique sur « Enregistrer ».</p>
-        <div id="tiles"></div>
+        <p class="muted">Sélectionne les effectifs et le véhicule pour chaque équipe, puis « Enregistrer ».</p>
+        <div id="tiles" class="tiles"></div>
       </section>
 
-      <!-- Colonne 2 : État actuel (lecture) -->
+      <!-- COLONNE DROITE : Tableau global (temps réel) -->
       <section class="card">
-        <h2>État des équipes</h2>
+        <h2>État des équipes (temps réel)</h2>
         <table id="etat-table">
           <thead>
             <tr>
-              <th>Équipe</th><th>Conducteur</th><th>Radio</th><th>Coéquipier 1</th><th>Coéquipier 2</th><th>Véhicule</th><th>Statut</th><th>Notes</th><th>MAJ</th>
+              <th>Équipe</th>
+              <th>Conducteur</th>
+              <th>Opérateur radio</th>
+              <th>Coéquipier 1</th>
+              <th>Coéquipier 2</th>
+              <th>Véhicule</th>
+              <th>Statut</th>
+              <th>Notes</th>
+              <th>MAJ</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -69,58 +77,59 @@
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    // ---------- CONFIG SUPABASE ----------
-    const SUPABASE_URL = "https://lmlzvszgiugxypizuien.supabase.co";       // <-- remplace
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtbHp2c3pnaXVneHlwaXp1aWVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTk5NjQsImV4cCI6MjA3MjYzNTk2NH0.z4E5aJ3mjU0KfYd-LUci-JM8u5sp6TjylSj3o_iWfVU";              // <-- remplace
+    // ====== CONFIG SUPABASE (à remplacer) ======
+    const SUPABASE_URL = "https://lmlzvszgiugxypizuien.supabase.co";   // <-- remplace
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtbHp2c3pnaXVneHlwaXp1aWVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTk5NjQsImV4cCI6MjA3MjYzNTk2NH0.z4E5aJ3mjU0KfYd-LUci-JM8u5sp6TjylSj3o_iWfVU";          // <-- remplace
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ---------- PETITS HELPERS ----------
-    const $  = (s)=>document.querySelector(s);
-    const $$ = (s)=>document.querySelectorAll(s);
-    const pad2 = (n)=>String(n).padStart(2,'0');
-    setInterval(()=>{const d=new Date(); $("#clock").textContent = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`},1000);
+    // ====== HELPERS UI ======
+    const $  = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+    const pad2 = n => String(n).padStart(2,'0');
+    setInterval(()=>{const d=new Date(); $("#clock").textContent=`${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`},1000);
 
-    // ---------- AUTH ----------
+    // ====== AUTH ======
     $("#btn-login").onclick = async ()=>{
       const email = prompt("Email (Supabase Auth) ?");
       const pass  = prompt("Mot de passe ?");
-      if(!email || !pass) return;
+      if (!email || !pass) return;
       const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
       if (error) alert(error.message);
     };
-    $("#btn-logout").onclick = async ()=>{ await supabase.auth.signOut(); };
+    $("#btn-logout").onclick = async ()=>{ await supabase.auth.signOut(); location.reload(); };
 
     supabase.auth.onAuthStateChange((_evt, session)=>{
       const u = session?.user;
       $("#who").textContent = u ? `Connecté : ${u.email || u.id}` : "Non connecté";
-      $("#btn-login").style.display = u ? "none" : "inline-block";
+      $("#btn-login").style.display  = u ? "none"         : "inline-block";
       $("#btn-logout").style.display = u ? "inline-block" : "none";
       if (u) initAll();
     });
 
-    // ---------- LISTES (effectifs / véhicules / status) ----------
-    async function fetchEffectifsActifs() {
+    // ====== LISTES DE RÉFÉRENCE ======
+    async function fetchEffectifsActifs(){
       const { data, error } = await supabase.from('effectifs').select('matricule,nom').eq('actif', true).order('nom');
       if (error) { console.error(error); return []; }
-      return data || [];
+      return data||[];
     }
-    async function fetchVehicules() {
+    async function fetchVehicules(){
       const { data, error } = await supabase.from('vehicules').select('code,modele').order('code');
       if (error) { console.error(error); return []; }
-      return data || [];
+      return data||[];
     }
-    async function fetchStatus() {
+    async function fetchStatus(){
       const { data, error } = await supabase.from('status').select('key,label').order('ordre');
       if (error) { console.error(error); return []; }
-      return data || [];
+      return data||[];
     }
 
-    // ---------- CONSTRUCTION DES TUILES ----------
-    const TAGS = ["ADAM 01","ADAM 02","ADAM 03","ADAM 04","ADAM 05"];
+    // ====== TUILES DISPATCH ======
+    // Adapte la liste aux équipes que tu veux afficher :
+    const TAGS = ["ADAM 01","ADAM 02","ADAM 03","ADAM 04","ADAM 05","ATR 17","LEAD"];
 
-    function buildTile(tag) {
+    function tileTemplate(tag){
       const el = document.createElement('div');
-      el.className = 'card tile';
+      el.className = "tile";
       el.innerHTML = `
         <h3>${tag}</h3>
         <div class="row">
@@ -164,34 +173,39 @@
       return el;
     }
 
-    async function fillSelectsInTile(tile, effectifs, vehicules, statuses) {
-      const effOpts = '<option value="">— Choisir —</option>' + effectifs.map(e=>`<option value="${e.matricule}">${e.nom} (#${e.matricule})</option>`).join('');
-      const vehOpts = '<option value="">— Véhicule —</option>' + vehicules.map(v=>`<option value="${v.code}">${v.code} — ${v.modele}</option>`).join('');
-      const stOpts  = '<option value="">— Statut —</option>' + statuses.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+    async function buildTiles(){
+      const cont = $("#tiles");
+      cont.innerHTML = "";
+      const [eff, veh, sts] = await Promise.all([fetchEffectifsActifs(), fetchVehicules(), fetchStatus()]);
 
-      tile.querySelector('.sel-conducteur').innerHTML = effOpts;
-      tile.querySelector('.sel-radio').innerHTML      = effOpts;
-      tile.querySelector('.sel-coequipier1').innerHTML= effOpts;
-      tile.querySelector('.sel-coequipier2').innerHTML= effOpts;
+      const effOpts = '<option value="">— Choisir —</option>' + eff.map(e=>`<option value="${e.matricule}">${e.nom} (#${e.matricule})</option>`).join('');
+      const vehOpts = '<option value="">— Véhicule —</option>' + veh.map(v=>`<option value="${v.code}">${v.code} — ${v.modele}</option>`).join('');
+      const stOpts  = '<option value="">— Statut —</option>' + sts.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
 
-      tile.querySelector('.sel-vehicule').innerHTML   = vehOpts;
-      tile.querySelector('.sel-status').innerHTML     = stOpts;
-    }
-
-    async function buildTiles() {
-      const container = $("#tiles");
-      container.innerHTML = "";
-      const [effectifs, vehicules, statuses] = await Promise.all([
-        fetchEffectifsActifs(), fetchVehicules(), fetchStatus()
-      ]);
       TAGS.forEach(tag=>{
-        const t = buildTile(tag);
-        container.appendChild(t);
-        fillSelectsInTile(t, effectifs, vehicules, statuses);
+        const t = tileTemplate(tag);
+        cont.appendChild(t);
+        t.querySelector('.sel-conducteur').innerHTML   = effOpts;
+        t.querySelector('.sel-radio').innerHTML        = effOpts;
+        t.querySelector('.sel-coequipier1').innerHTML  = effOpts;
+        t.querySelector('.sel-coequipier2').innerHTML  = effOpts;
+        t.querySelector('.sel-vehicule').innerHTML     = vehOpts;
+        t.querySelector('.sel-status').innerHTML       = stOpts;
       });
     }
 
-    // ---------- ENREGISTREMENT ----------
+    // Remplir une tuile avec des valeurs existantes (depuis v_equipes)
+    function hydrateTileFromRow(tile, row){
+      tile.querySelector('.sel-conducteur').value   = row.conducteur   || "";
+      tile.querySelector('.sel-radio').value        = row.radio        || "";
+      tile.querySelector('.sel-coequipier1').value  = row.coequipier1  || "";
+      tile.querySelector('.sel-coequipier2').value  = row.coequipier2  || "";
+      tile.querySelector('.sel-vehicule').value     = row.vehicule     || "";
+      tile.querySelector('.sel-status').value       = row.status       || "";
+      tile.querySelector('.txt-notes').value        = row.notes        || "";
+    }
+
+    // Sauvegarde via RPC save_equipe
     document.addEventListener('click', async (e)=>{
       const btn = e.target.closest('.save-dispatch');
       if (!btn) return;
@@ -199,7 +213,7 @@
       const tag  = tile.querySelector('h3').textContent;
 
       const payload = {
-        p_tag: tag,
+        p_tag:         tag,
         p_conducteur:  tile.querySelector('.sel-conducteur').value || null,
         p_radio:       tile.querySelector('.sel-radio').value || null,
         p_coequipier1: tile.querySelector('.sel-coequipier1').value || null,
@@ -209,15 +223,15 @@
         p_notes:       tile.querySelector('.txt-notes').value || null
       };
 
-      const { error } = await supabase.rpc('save_equipe', payload);
-      if (error) { alert("Erreur: " + error.message); return; }
+      const { data, error } = await supabase.rpc('save_equipe', payload);
+      if (error) { alert("Erreur : " + error.message); return; }
       btn.textContent = "Enregistré ✓";
       setTimeout(()=> btn.textContent = "Enregistrer", 1200);
-      await loadEtat(); // rafraîchir le tableau de droite
+      await loadEtat(); // met à jour le tableau
     });
 
-    // ---------- LECTURE (état actuel) ----------
-    async function loadEtat() {
+    // ====== TABLEAU GLOBAL (v_equipes) ======
+    async function loadEtat(){
       const { data, error } = await supabase.from('v_equipes').select('*').order('tag');
       if (error) { console.error(error); return; }
       const tb = $("#etat-table tbody"); tb.innerHTML = "";
@@ -232,19 +246,23 @@
           <td>${r.vehicule ? `${r.vehicule} — ${r.vehicule_modele||''}` : ''}</td>
           <td>${r.status_label || r.status || ''}</td>
           <td>${r.notes || ''}</td>
-          <td>${new Date(r.updated_at).toLocaleString()}</td>
+          <td>${new Date(r.updated_at).toLocaleTimeString()}</td>
         `;
         tb.appendChild(tr);
+
+        // Hydrate la tuile correspondante si elle existe à gauche
+        const tile = [...$$('.tile')].find(t => t.querySelector('h3').textContent === r.tag);
+        if (tile) hydrateTileFromRow(tile, r);
       });
     }
 
-    // ---------- TEMPS RÉEL ----------
+    // Temps réel : quand la table "equipes" change, on recharge le tableau
     supabase.channel('rt-equipes')
       .on('postgres_changes', { event:'*', schema:'public', table:'equipes' }, loadEtat)
       .subscribe();
 
-    // ---------- INIT ----------
-    async function initAll() {
+    // ====== INIT ======
+    async function initAll(){
       await buildTiles();
       await loadEtat();
     }
@@ -257,4 +275,3 @@
   </script>
 </body>
 </html>
-
