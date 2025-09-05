@@ -4,14 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Central — Compteurs</title>
-  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="styles.css?v=9" />
 </head>
 <body>
 <header>
-  <div class="brand">
-    <a href="index.html"><img src="badge.png" alt="badge"></a>
-    <div class="title">SAINT-GEORGES SHERIFF</div>
-  </div>
+  <div class="brand"><a href="index.html"><img src="badge.png" alt="badge"></a><div class="title">SAINT-GEORGES SHERIFF</div></div>
   <div class="spread">
     <span id="clock" class="pill">--:--:--</span>
     <span id="who" class="pill">Non connecté</span>
@@ -22,15 +19,25 @@
 
 <main class="container">
   <section class="card">
-    <h3>Compteur des effectifs (temps cumulé)</h3>
-
-    <!-- Filtres -->
+    <h3>Compteur (temps cumulé)</h3>
     <div class="filters">
       <input id="q" class="input" placeholder="Rechercher (nom, matricule…)" />
     </div>
 
-    <!-- Conteneur -->
-    <div id="compteurs-container"></div>
+    <table class="table" id="tbl-compteurs">
+      <thead>
+        <tr>
+          <th>Grade</th>
+          <th>Matricule</th>
+          <th>Nom</th>
+          <th>Semaine</th>
+          <th>Total</th>
+          <th>Actif</th>
+          <th>Dernière MAJ</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </section>
 </main>
 
