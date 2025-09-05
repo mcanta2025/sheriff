@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Central — Organigramme des effectifs</title>
+  <link rel="stylesheet" href="styles.css?v=11" />
+</head>
+<body>
+<header>
+  <div class="brand">
+    <a href="index.html"><img src="badge.png" alt="badge"></a>
+    <div class="title">SAINT-GEORGES SHERIFF</div>
+  </div>
+  <div class="spread">
+    <span id="clock" class="pill">--:--:--</span>
+    <span id="who" class="pill">Non connecté</span>
+    <a href="index.html" class="btn ghost">← Accueil</a>
+    <button id="btn-logout" class="btn gold hidden">Déconnexion</button>
+  </div>
+</header>
+
+<main class="container">
+  <section class="card">
+    <div class="spread" style="margin-bottom:12px">
+      <h3>Organigramme des effectifs</h3>
+      <div class="filters">
+        <input id="q" class="input" placeholder="Rechercher (nom, matricule…)" />
+        <label class="pill">Total: <span id="count-total">0</span></label>
+      </div>
+    </div>
+
+    <!-- Organigramme -->
+    <div id="org" class="org-chart"></div>
+  </section>
+</main>
+
+<footer>© Sheriff’s Department — Saint-Georges</footer>
+
+<script type="module" src="common.js"></script>
+<script type="module" src="effectifs_org.js"></script>
+</body>
+</html>
