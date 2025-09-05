@@ -107,3 +107,74 @@ h1,h2,h3{margin:6px 0 10px}
 
 /* Footer */
 footer{padding:24px 16px;color:var(--muted);text-align:center}
+
+
+
+/* === Organigramme Effectifs === */
+.org-chart{
+  display:flex;
+  flex-direction:column;
+  gap:22px;
+  position:relative;
+}
+
+.org-level{
+  position:relative;
+  padding:6px 8px 12px 8px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:linear-gradient(180deg,#141517,#0f1011);
+}
+
+.org-level-header{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:8px;
+}
+.org-level-header h4{
+  margin:0; color:var(--gold); font-size:14px; letter-spacing:.3px;
+}
+.org-level .grade-count{
+  color:var(--muted); font-size:12px; border:1px solid var(--line);
+  border-radius:999px; padding:2px 8px;
+}
+
+.org-row{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap:10px;
+}
+
+/* Puces personne */
+.org-chip{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+  font-size:13px;
+}
+.org-chip-top{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;
+}
+.org-mat{ font-weight:700; }
+.org-badge{
+  border-radius:8px; padding:2px 8px; font-size:12px; font-weight:700;
+  border:1px solid var(--line);
+}
+.org-badge.on{ background:var(--success); color:#000; border-color:transparent; }
+.org-badge.off{ background:#444; color:#ddd; }
+
+.org-name{ font-weight:700; margin-bottom:4px; }
+.org-tags{ display:flex; gap:6px; flex-wrap:wrap; }
+
+/* Connecteur visuel entre niveaux */
+.org-connector{
+  height:18px;
+  position:relative;
+}
+.org-connector::before{
+  content:"";
+  position:absolute; left:50%; transform:translateX(-50%);
+  width:2px; height:100%;
+  background:linear-gradient(180deg, var(--gold), transparent);
+  opacity:.35;
+}
