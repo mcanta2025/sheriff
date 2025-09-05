@@ -6,10 +6,10 @@ await requireAuthOrRedirect();
 
 const state = { raw: [], q: "" };
 
-// Charger depuis la vue hiérarchique
+// Charger depuis la vue des temps (v_compteur_temps)
 async function fetchCompteurs(){
   const { data, error } = await supabase
-    .from("v_compteur_effectifs_hierarchie")
+    .from("v_compteur_temps")
     .select("*");
   if(error){ console.error(error); return []; }
   return data || [];
@@ -23,6 +23,16 @@ function filterData(list){
     const hay = [e.prenom_nom||"", e.matricule||"", e.grade||""].join(" ").toLowerCase();
     return hay.includes(q);
   });
+}
+
+// Formatter secondes -> "Xj Yh Zm Ss"
+function formatDuration(sec){
+  sec = Math.floor(sec || 0);
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${d}j ${h}h ${m}m ${s}s`;
 }
 
 // Rendu
@@ -58,9 +68,8 @@ function render(){
           <div class="${e.actif ? 'badge-active' : 'badge-inactive'}">${e.actif ? 'ACTIF' : 'INACTIF'}</div>
         </div>
         <div style="font-weight:700;margin-bottom:4px">${e.prenom_nom||"(Sans nom)"}</div>
-        <div class="person-meta">Semaine : ${e.total_semaine_courante||0}</div>
-        <div class="person-meta">Total : ${e.total_global||0}</div>
-        <div class="person-meta small muted">${e.derniere_maj ? "Maj " + new Date(e.derniere_maj).toLocaleString() : ""}</div>
+        <div class="person-meta">Semaine : ${formatDuration(e.secondes_semaine||0)}</div>
+        <div class="person-meta">Total : ${formatDuration(e.secondes_total||0)}</div>
       `;
       grid.appendChild(card);
     });
@@ -71,8 +80,8 @@ function render(){
 }
 
 // Realtime
-supabase.channel("rt-compteur")
-  .on("postgres_changes",{event:"*",schema:"public",table:"compteur_heures"}, async ()=>{
+supabase.channel("rt-sessions")
+  .on("postgres_changes",{event:"*",schema:"public",table:"compteur_sessions"}, async ()=>{
     state.raw = await fetchCompteurs();
     render();
   })
@@ -82,7 +91,7 @@ supabase.channel("rt-compteur")
 state.raw = await fetchCompteurs();
 render();
 
-// Filtre
+// Filtre recherche
 document.getElementById('q').addEventListener('input', e=>{
   state.q = e.target.value;
   render();
