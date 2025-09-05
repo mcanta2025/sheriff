@@ -5,12 +5,6 @@
   <title>Calculateur d'infractions</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="styles.css" rel="stylesheet" />
-
-  <!-- Expose le client Supabase exporté par common.js (qui reste inchangé) -->
-  <script type="module">
-    import { supabase } from "./common.js";
-    window.supabase = supabase;
-  </script>
 </head>
 <body>
   <header>
@@ -62,207 +56,207 @@
 
   <footer>© Sheriff’s Department • Saint-Georges</footer>
 
-  <!-- Script applicatif (non-module) -->
-  <script>
-    (function(){
-      const db = window.supabase;   // depuis common.js
-      let infractions = [];
-      let selection   = [];
+  <!-- Script applicatif en module : on importe supabase directement -->
+  <script type="module">
+    import { supabase } from "./common.js";
 
-      const el = {
-        searchA: document.getElementById('search'),
-        searchB: document.getElementById('calc-search'),
-        list:    document.getElementById('infractions-list'),
-        selWrap: document.getElementById('selection'),
-        tAmende: document.getElementById('total-amendes'),
-        tFour:   document.getElementById('total-fourriere'),
-        reset:   document.getElementById('btn-reset')
-      };
+    const db = supabase;     // plus de window.supabase
+    let infractions = [];
+    let selection   = [];
 
-      // === helpers UI ===
-      function money(n){ return `$${Number(n||0).toLocaleString()}`; }
-      function badgeClassification(c){
-        const up = String(c||'').toUpperCase();
-        if (up === 'CONTRAVENTION') return '<span class="badge badge-green">Contravention</span>';
-        if (up === 'DELIT')         return '<span class="badge badge-orange">Délit</span>';
-        if (up === 'CRIME')         return '<span class="badge badge-red">Crime</span>';
-        return `<span class="badge">${c||''}</span>`;
-      }
-      function categoryIcon(category = ""){
-        const c = category.toLowerCase();
-        if (c.includes('route') || c.includes('conduite')) return { ico:'🚗', label:category };
-        if (c.includes('vol')   || c.includes('braquage'))  return { ico:'🧤', label:category };
-        if (c.includes('agression') || c.includes('violence')) return { ico:'⚔️', label:category };
-        if (c.includes('stup') || c.includes('drog'))       return { ico:'💊', label:category };
-        if (c.includes('arme'))                             return { ico:'🔫', label:category };
-        if (c.includes('fraude') || c.includes('escro'))    return { ico:'🧾', label:category };
-        return { ico:'📘', label: category || 'Autre' };
-      }
-      function catBadge(category){
-        const {ico,label} = categoryIcon(category);
-        // on réutilise ta classe .sel-pill pour un “badge” catégorie
-        return `<span class="sel-pill">${ico} ${label||''}</span>`;
-      }
+    const el = {
+      searchA: document.getElementById('search'),
+      searchB: document.getElementById('calc-search'),
+      list:    document.getElementById('infractions-list'),
+      selWrap: document.getElementById('selection'),
+      tAmende: document.getElementById('total-amendes'),
+      tFour:   document.getElementById('total-fourriere'),
+      reset:   document.getElementById('btn-reset')
+    };
 
-      // === recherche (deux inputs synchro au cas où) ===
-      el.searchA.addEventListener('input', () => {
-        if (el.searchB.value !== el.searchA.value) {
-          el.searchB.value = el.searchA.value;
-          el.searchB.dispatchEvent(new Event('input', { bubbles:true }));
-        }
+    // === helpers UI ===
+    const money = (n) => `$${Number(n||0).toLocaleString()}`;
+    function badgeClassification(c){
+      const up = String(c||'').toUpperCase();
+      if (up === 'CONTRAVENTION') return '<span class="badge badge-green">Contravention</span>';
+      if (up === 'DELIT')         return '<span class="badge badge-orange">Délit</span>';
+      if (up === 'CRIME')         return '<span class="badge badge-red">Crime</span>';
+      return `<span class="badge">${c||''}</span>`;
+    }
+    function categoryIcon(category = ""){
+      const c = category.toLowerCase();
+      if (c.includes('route') || c.includes('conduite')) return { ico:'🚗', label:category };
+      if (c.includes('vol')   || c.includes('braquage'))  return { ico:'🧤', label:category };
+      if (c.includes('agression') || c.includes('violence')) return { ico:'⚔️', label:category };
+      if (c.includes('stup') || c.includes('drog'))       return { ico:'💊', label:category };
+      if (c.includes('arme'))                             return { ico:'🔫', label:category };
+      if (c.includes('fraude') || c.includes('escro'))    return { ico:'🧾', label:category };
+      return { ico:'📘', label: category || 'Autre' };
+    }
+    function catBadge(category){
+      const {ico,label} = categoryIcon(category);
+      // on réutilise ta classe .sel-pill pour un badge cat
+      return `<span class="sel-pill">${ico} ${label||''}</span>`;
+    }
+
+    // === recherche (deux inputs synchro au cas où) ===
+    el.searchA.addEventListener('input', () => {
+      if (el.searchB.value !== el.searchA.value) {
+        el.searchB.value = el.searchA.value;
+        el.searchB.dispatchEvent(new Event('input', { bubbles:true }));
+      }
+      filterAndRender();
+    });
+    el.searchB.addEventListener('input', () => {
+      if (el.searchA.value !== el.searchB.value) {
+        el.searchA.value = el.searchB.value;
         filterAndRender();
-      });
-      el.searchB.addEventListener('input', () => {
-        if (el.searchA.value !== el.searchB.value) {
-          el.searchA.value = el.searchB.value;
-          filterAndRender();
-        }
-      });
+      }
+    });
 
-      el.reset.addEventListener('click', () => { selection = []; renderSelection(); });
+    el.reset.addEventListener('click', () => { selection = []; renderSelection(); });
 
-      // === LISTE : tableau ===
-      function renderList(arr){
-        el.list.innerHTML = '';
-        if (!arr?.length){
-          el.list.innerHTML = '<div class="muted">Aucune infraction trouvée.</div>';
-          return;
-        }
+    // === LISTE : tableau ===
+    function renderList(arr){
+      el.list.innerHTML = '';
+      if (!arr?.length){
+        el.list.innerHTML = '<div class="muted">Aucune infraction trouvée.</div>';
+        return;
+      }
 
-        const table = document.createElement('table');
-        table.className = 'table';
-        table.setAttribute('aria-label','Liste des infractions');
-        table.innerHTML = `
-          <thead>
-            <tr>
-              <th>Infraction</th>
-              <th>Catégorie</th>
-              <th>Classification</th>
-              <th style="text-align:right">Amende</th>
-              <th style="text-align:right">Fourrière</th>
-              <th style="text-align:right"></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
+      const table = document.createElement('table');
+      table.className = 'table';
+      table.setAttribute('aria-label','Liste des infractions');
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Infraction</th>
+            <th>Catégorie</th>
+            <th>Classification</th>
+            <th style="text-align:right">Amende</th>
+            <th style="text-align:right">Fourrière</th>
+            <th style="text-align:right"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const tbody = table.querySelector('tbody');
+
+      arr.forEach((it, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${it.infraction}</b></td>
+          <td>${catBadge(it.category)}</td>
+          <td>${badgeClassification(it.classification)}</td>
+          <td style="text-align:right">${money(it.amende)}</td>
+          <td style="text-align:right">${Number(it.jour_fourriere||0)} j</td>
+          <td style="text-align:right">
+            <button class="btn add-btn" data-add="${idx}">Ajouter</button>
+          </td>
         `;
-        const tbody = table.querySelector('tbody');
+        tbody.appendChild(tr);
+      });
 
-        arr.forEach((it, idx) => {
+      table.querySelectorAll('button[data-add]').forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          const idx = Number(e.currentTarget.getAttribute('data-add'));
+          selection.push(arr[idx]);
+          renderSelection();
+        });
+      });
+
+      el.list.appendChild(table);
+    }
+
+    // === SELECTION : tableau ===
+    function renderSelection(){
+      el.selWrap.innerHTML = '';
+
+      const table = document.createElement('table');
+      table.className = 'table';
+      table.setAttribute('aria-label','Sélection');
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Infraction</th>
+            <th>Catégorie</th>
+            <th style="text-align:right">Amende</th>
+            <th style="text-align:right">Fourrière</th>
+            <th style="text-align:right"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const tbody = table.querySelector('tbody');
+
+      if (!selection.length){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="5" class="muted">Aucune sélection.</td>`;
+        tbody.appendChild(tr);
+      } else {
+        selection.forEach((it, idx) => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td><b>${it.infraction}</b></td>
             <td>${catBadge(it.category)}</td>
-            <td>${badgeClassification(it.classification)}</td>
             <td style="text-align:right">${money(it.amende)}</td>
             <td style="text-align:right">${Number(it.jour_fourriere||0)} j</td>
             <td style="text-align:right">
-              <button class="btn add-btn" data-add="${idx}">Ajouter</button>
+              <button class="btn ghost" data-del="${idx}">Retirer</button>
             </td>
           `;
           tbody.appendChild(tr);
         });
 
-        table.querySelectorAll('button[data-add]').forEach(btn=>{
+        table.querySelectorAll('button[data-del]').forEach(btn=>{
           btn.addEventListener('click', (e)=>{
-            const idx = Number(e.currentTarget.getAttribute('data-add'));
-            selection.push(arr[idx]);
+            const idx = Number(e.currentTarget.getAttribute('data-del'));
+            selection.splice(idx, 1);
             renderSelection();
           });
         });
-
-        el.list.appendChild(table);
       }
 
-      // === SELECTION : tableau ===
-      function renderSelection(){
-        el.selWrap.innerHTML = '';
+      el.selWrap.appendChild(table);
 
-        const table = document.createElement('table');
-        table.className = 'table';
-        table.setAttribute('aria-label','Sélection');
-        table.innerHTML = `
-          <thead>
-            <tr>
-              <th>Infraction</th>
-              <th>Catégorie</th>
-              <th style="text-align:right">Amende</th>
-              <th style="text-align:right">Fourrière</th>
-              <th style="text-align:right"></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        `;
-        const tbody = table.querySelector('tbody');
+      // Totaux (cartes existantes)
+      const tA = selection.reduce((s,i)=> s + (Number(i.amende)||0), 0);
+      const tF = selection.reduce((s,i)=> s + (Number(i.jour_fourriere)||0), 0);
+      el.tAmende.textContent = money(tA);
+      el.tFour.textContent   = `${tF} jour(s)`;
+    }
 
-        if (!selection.length){
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td colspan="5" class="muted">Aucune sélection.</td>`;
-          tbody.appendChild(tr);
-        } else {
-          selection.forEach((it, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td><b>${it.infraction}</b></td>
-              <td>${catBadge(it.category)}</td>
-              <td style="text-align:right">${money(it.amende)}</td>
-              <td style="text-align:right">${Number(it.jour_fourriere||0)} j</td>
-              <td style="text-align:right">
-                <button class="btn ghost" data-del="${idx}">Retirer</button>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
+    // === filtre ===
+    function filterAndRender(){
+      const q = (el.searchA.value||'').toLowerCase().trim();
+      if (!q) return renderList(infractions);
+      const out = infractions.filter(it =>
+        String(it.infraction||'').toLowerCase().includes(q) ||
+        String(it.category||'').toLowerCase().includes(q) ||
+        String(it.classification||'').toLowerCase().includes(q)
+      );
+      renderList(out);
+    }
 
-          table.querySelectorAll('button[data-del]').forEach(btn=>{
-            btn.addEventListener('click', (e)=>{
-              const idx = Number(e.currentTarget.getAttribute('data-del'));
-              selection.splice(idx, 1);
-              renderSelection();
-            });
-          });
-        }
-
-        el.selWrap.appendChild(table);
-
-        // Totaux (cartes existantes)
-        const tA = selection.reduce((s,i)=> s + (Number(i.amende)||0), 0);
-        const tF = selection.reduce((s,i)=> s + (Number(i.jour_fourriere)||0), 0);
-        el.tAmende.textContent = money(tA);
-        el.tFour.textContent   = `${tF} jour(s)`;
+    // === chargement ===
+    async function load(){
+      try{
+        const { data, error } = await db.from('calculateur')
+          .select('id, category, infraction, classification, amende, garde_a_vue, audition, jour_fourriere, peine_compl')
+          .order('category', { ascending: true })
+          .limit(2000);
+        if (error) throw error;
+        infractions = data || [];
+      } catch(err){
+        console.error('Erreur chargement calculateur:', err);
+        el.list.innerHTML = `<div class="badge badge-red">Erreur : ${err.message}</div>`;
+        return;
       }
+      renderList(infractions);
+      renderSelection();
+    }
 
-      // === filtre ===
-      function filterAndRender(){
-        const q = (el.searchA.value||'').toLowerCase().trim();
-        if (!q) return renderList(infractions);
-        const out = infractions.filter(it =>
-          String(it.infraction||'').toLowerCase().includes(q) ||
-          String(it.category||'').toLowerCase().includes(q) ||
-          String(it.classification||'').toLowerCase().includes(q)
-        );
-        renderList(out);
-      }
-
-      // === chargement ===
-      async function load(){
-        try{
-          const { data, error } = await db.from('calculateur')
-            .select('id, category, infraction, classification, amende, garde_a_vue, audition, jour_fourriere, peine_compl')
-            .order('category', { ascending: true })
-            .limit(2000);
-          if (error) throw error;
-          infractions = data || [];
-        } catch(err){
-          console.error('Erreur chargement calculateur:', err);
-          el.list.innerHTML = `<div class="badge badge-red">Erreur : ${err.message}</div>`;
-          return;
-        }
-        renderList(infractions);
-        renderSelection();
-      }
-
-      load();
-    })();
+    load();
   </script>
 </body>
 </html>
