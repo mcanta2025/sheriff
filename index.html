@@ -8,8 +8,13 @@
 </head>
 <body>
 <header>
-  <div class="brand"><img src="badge.png" alt="badge"><div class="title">SAINT-GEORGES SHERIFF</div></div>
-  <div class="spread"><span id="clock" class="pill">--:--:--</span><span id="who" class="pill">Non connecté</span>
+  <div class="brand">
+    <img src="badge.png" alt="badge" style="height:40px;width:auto">
+    <div class="title">SAINT-GEORGES SHERIFF</div>
+  </div>
+  <div class="spread">
+    <span id="clock" class="pill">--:--:--</span>
+    <span id="who" class="pill">Non connecté</span>
     <button id="btn-login" class="btn gold hidden">Connexion</button>
     <button id="btn-logout" class="btn ghost hidden">Déconnexion</button>
   </div>
@@ -18,7 +23,9 @@
 <main class="container" id="page-login" style="display:none">
   <div class="card" style="max-width:620px;margin:32px auto">
     <div class="center" style="flex-direction:column;gap:10px;margin-bottom:12px">
-      <img src="badge.png" style="height:80px"><h1>Connexion</h1><div class="muted">Email + mot de passe Supabase</div>
+      <img src="badge.png" style="height:80px;width:auto">
+      <h1>Connexion</h1>
+      <div class="muted">Email + mot de passe Supabase</div>
     </div>
     <div class="grid">
       <div class="row">
@@ -31,21 +38,11 @@
 </main>
 
 <main class="container" id="page-home" style="display:none">
-  <div class="spread" style="margin:10px 0 16px">
-    <h2 class="badge">TABLEAU DE BORD</h2>
-    <span class="muted">Choisis un module.</span>
-  </div>
   <div class="tiles">
-    <a href="dispatch.html"   class="tileLink"><div class="tileIcon">D</div><div><b>Dispatch</b><div class="muted small">Affectations en temps réel</div></div></a>
-    <a href="compteur.html"   class="tileLink"><div class="tileIcon">C</div><div><b>Compteur effectifs</b><div class="muted small">Timings & séances</div></div></a>
-    <a href="effectifs.html"  class="tileLink"><div class="tileIcon">E</div><div><b>Effectifs</b><div class="muted small">Liste & statuts</div></div></a>
-    <a href="admin.html"      class="tileLink"><div class="tileIcon">A</div><div><b>Administration</b><div class="muted small">Gestion & droits</div></div></a>
-    <a href="calculateur.html"class="tileLink"><div class="tileIcon">K</div><div><b>Calculateur</b><div class="muted small">Heures + judiciaires</div></div></a>
-    <a href="fourriere.html"  class="tileLink"><div class="tileIcon">F</div><div><b>Fourrière</b><div class="muted small">Immobilisations</div></div></a>
+    <a href="dispatch.html" class="tileLink"><div class="tileIcon">D</div><div><b>Dispatch</b><div class="muted small">Affectations en temps réel</div></div></a>
+    <!-- autres tuiles... -->
   </div>
 </main>
-
-<footer>© Sheriff’s Department — Saint-Georges</footer>
 
 <script type="module">
   import { supabase, startClock, bindHeaderAuth } from './common.js';
@@ -67,7 +64,7 @@
     const password = document.getElementById('login-pass').value.trim();
     if(!email||!password) return alert("Email et mot de passe requis.");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert(error.message); else { show('home'); }
+    if (error) alert(error.message); else show('home');
   });
 </script>
 </body>
