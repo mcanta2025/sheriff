@@ -6,21 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="styles.css" rel="stylesheet" />
 
-  <!-- ⚠️ Supprimé : plus besoin de charger supabase via unpkg -->
+  <!-- Ne PAS charger le CDN unpkg, on garde ton common.js -->
   <!-- <script src="https://unpkg.com/@supabase/supabase-js@2"></script> -->
 
-  <!-- Script commun, en module -->
+  <!-- Expose supabase depuis common.js en global, en module -->
   <script type="module">
     import { supabase } from "./common.js";
-    // si tu veux utiliser les helpers ailleurs, tu peux aussi importer :
-    // import { startClock, bindHeaderAuth, requireAuthOrRedirect } from "./common.js";
-
-    // Expose le client globalement pour les scripts non-module
     window.supabase = supabase;
   </script>
 
   <style>
-    /* --- tes styles inchangés (j’ai laissé ceux de ta version précédente) --- */
     .pill { padding:2px 8px; border-radius:999px; font-size:12px; display:inline-block }
     .pill.green { background:rgba(0,200,0,.15); color:#c6ffcf; border:1px solid rgba(0,200,0,.25)}
     .pill.orange{ background:rgba(255,165,0,.15); color:#ffd9a6; border:1px solid rgba(255,165,0,.25)}
@@ -43,7 +38,6 @@
   </header>
 
   <main class="container grid" style="grid-template-columns: 1.15fr .85fr; gap:20px">
-    <!-- Colonne gauche : recherche + liste -->
     <section class="card">
       <div class="spread" style="margin-bottom:10px">
         <h2>Recherche d'infractions</h2>
@@ -59,16 +53,13 @@
       </div>
     </section>
 
-    <!-- Colonne droite : sélection + totaux -->
     <aside class="card">
       <div class="spread" style="margin-bottom:10px">
         <h2>Sélection en cours</h2>
         <button class="btn gold" id="btn-reset">Vider la sélection</button>
       </div>
 
-      <div id="calc-selection">
-        <div id="selection"></div>
-      </div>
+      <div id="calc-selection"><div id="selection"></div></div>
 
       <hr style="border:none;border-top:1px solid var(--line); margin:14px 0" />
 
@@ -80,11 +71,24 @@
 
   <footer>© Sheriff’s Department • Saint-Georges</footer>
 
-  <!-- Ton script applicatif peut rester en non-module -->
+  <!-- Script applicatif -->
   <script>
-    if (!window.initCalculator) {
-      (function(){
-        const db = window.supabase;
+    // Attendre que window.supabase soit prêt
+    async function waitForSupabase(timeoutMs = 5000) {
+      const start = Date.now();
+      while (!window.supabase) {
+        if (Date.now() - start > timeoutMs) {
+          throw new Error("Supabase non chargé (timeout). Vérifie que tu ouvres via http:// et pas file://");
+        }
+        await new Promise(r => setTimeout(r, 50));
+      }
+      return window.supabase;
+    }
+
+    (async function(){
+      try {
+        const db = await waitForSupabase();
+
         let infractions = [];
         let selection = [];
 
@@ -212,7 +216,8 @@
             infractions = data || [];
           } catch (err) {
             console.error('Erreur chargement calculateur:', err);
-            el.list.innerHTML = `<div class="pill red">Erreur de chargement : ${err.message}</div>`;
+            document.getElementById('infractions-list').innerHTML =
+              `<div class="pill red">Erreur de chargement : ${err.message}</div>`;
             return;
           }
           renderList(infractions);
@@ -220,8 +225,14 @@
         }
 
         load();
-      })();
-    }
+      } catch (e) {
+        console.error(e);
+        document.getElementById('infractions-list')?.insertAdjacentHTML(
+          'beforebegin',
+          `<div class="pill red" style="margin:12px 0">Init Supabase : ${e.message}</div>`
+        );
+      }
+    })();
   </script>
 </body>
 </html>
