@@ -204,15 +204,36 @@ async function loadEtat(){
     });
 }
 
-/* ====== Realtime abonnements ====== */
-supabase
-  .channel("rt-equipes")
-  .on("postgres_changes", { event: "*", schema: "public", table: "equipes" }, (payload) => {
-    console.log("Changement détecté sur EQUIPES:", payload);
-    loadEtat();
-  })
-  .subscribe();
+/* ====== Realtime abonnements (avec logs) ====== */
+const ch = supabase
+  .channel('rt-equipes')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'equipes' },
+    (payload) => {
+      console.log('[Realtime] changement EQUIPES:', payload);
+      loadEtat(); // recharge l’affichage
+    }
+  )
+  .subscribe((status) => {
+    console.log('[Realtime] channel status:', status);
+  });
+
+/* Fallback doux au cas où (poll toutes les 10s si pas SUBSCRIBED) */
+setTimeout(() => {
+  if (!ch || ch.state !== 'joined') {
+    console.warn('[Realtime] pas SUBSCRIBED → fallback polling 10s');
+    setInterval(loadEtat, 10000);
+  }
+}, 3000);
 
 /* ====== Init ====== */
 await buildTiles();
 await loadEtat();
+
+/* Debug: montrer l’utilisateur courant */
+supabase.auth.getUser().then(({ data, error }) => {
+  if (error) console.error('[Auth] error:', error.message);
+  else console.log('[Auth] user:', data?.user?.id);
+});
+
