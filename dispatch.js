@@ -5,9 +5,33 @@ await bindHeaderAuth();
 await requireAuthOrRedirect();
 
 /* ====== Lists ====== */
-async function fetchEffectifsActifs(){ const {data}=await supabase.from("effectifs").select("matricule,nom").eq("actif",true).order("nom"); return data||[]; }
-async function fetchVehicules(){ const {data}=await supabase.from("vehicules").select("code,modele").order("code"); return data||[]; }
-async function fetchStatus(){ const {data}=await supabase.from("status").select("key,label").order("ordre"); return data||[]; }
+async function fetchEffectifsActifs() {
+  const { data, error } = await supabase
+    .from("effectifs")
+    .select("matricule,nom")
+    .eq("actif", true)
+    .order("nom");
+  if (error) console.error("Erreur fetchEffectifs:", error.message);
+  return data || [];
+}
+
+async function fetchVehicules() {
+  const { data, error } = await supabase
+    .from("vehicules")
+    .select("code,modele")
+    .order("code");
+  if (error) console.error("Erreur fetchVehicules:", error.message);
+  return data || [];
+}
+
+async function fetchStatus() {
+  const { data, error } = await supabase
+    .from("status")
+    .select("key,label")
+    .order("ordre");
+  if (error) console.error("Erreur fetchStatus:", error.message);
+  return data || [];
+}
 
 /* ====== Tiles ====== */
 const TAGS = ["LEAD","ADAM 01","ADAM 02","ADAM 03","ADAM 04","ADAM 05","ATR 17"];
@@ -17,27 +41,22 @@ function tileTemplate(tag){
   el.className = "equipe-tile";
   el.innerHTML = `
     <h4>${tag}</h4>
-
     <div class="row2">
       <div><label class="small muted">Conducteur</label><select class="sel-conducteur"></select></div>
       <div><label class="small muted">Radio</label><select class="sel-radio"></select></div>
     </div>
-
     <div class="row2">
       <div><label class="small muted">C1</label><select class="sel-coequipier1"></select></div>
       <div><label class="small muted">C2</label><select class="sel-coequipier2"></select></div>
     </div>
-
     <div class="row2">
       <div><label class="small muted">Véhicule</label><select class="sel-vehicule"></select></div>
       <div><label class="small muted">Statut</label><select class="sel-status"></select></div>
     </div>
-
     <div>
       <label class="small muted">Notes</label>
       <textarea class="txt-notes" placeholder="Notes…"></textarea>
     </div>
-
     <div class="actions">
       <button class="btn" data-act="clear">Vider</button>
       <button class="btn gold" data-act="save">OK</button>
@@ -50,7 +69,12 @@ async function buildTiles(){
   const cont = document.getElementById("tiles-col");
   cont.innerHTML = "";
 
-  const [eff,veh,sts] = await Promise.all([fetchEffectifsActifs(), fetchVehicules(), fetchStatus()]);
+  const [eff,veh,sts] = await Promise.all([
+    fetchEffectifsActifs(),
+    fetchVehicules(),
+    fetchStatus()
+  ]);
+
   const effOpts = '<option value="">—</option>'+eff.map(e=>`<option value="${e.matricule}">${e.nom}</option>`).join('');
   const vehOpts = '<option value="">—</option>'+veh.map(v=>`<option value="${v.code}">${v.code} — ${v.modele}</option>`).join('');
   const stOpts  = '<option value="">—</option>'+sts.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
@@ -141,9 +165,8 @@ function statusClass(k){
 
 async function loadEtat(){
   const { data, error } = await supabase.from("v_equipes").select("*");
-  if(error){ console.error(error); return; }
+  if(error){ console.error("Erreur loadEtat:", error.message); return; }
 
-  // --- organigramme (droite)
   const cont = document.getElementById("orga");
   cont.innerHTML = "";
 
@@ -181,11 +204,15 @@ async function loadEtat(){
     });
 }
 
-/* Realtime */
-supabase.channel("rt-equipes")
-  .on("postgres_changes",{event:"*",schema:"public",table:"equipes"},loadEtat)
+/* ====== Realtime abonnements ====== */
+supabase
+  .channel("rt-equipes")
+  .on("postgres_changes", { event: "*", schema: "public", table: "equipes" }, (payload) => {
+    console.log("Changement détecté sur EQUIPES:", payload);
+    loadEtat();
+  })
   .subscribe();
 
-/* Init */
+/* ====== Init ====== */
 await buildTiles();
 await loadEtat();
