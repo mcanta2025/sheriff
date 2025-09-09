@@ -10,7 +10,7 @@ async function fetchEffectifsActifs() {
     .from("effectifs")
     .select("matricule,nom")
     .eq("actif", true)
-    .order("nom");
+    .order("nom");console.log('[Realtime] channel state after subscribe:', ch.state);
   if (error) console.error("Erreur fetchEffectifs:", error.message);
   return data || [];
 }
@@ -218,6 +218,7 @@ const ch = supabase
   .subscribe((status) => {
     console.log('[Realtime] channel status:', status);
   });
+console.log('[Realtime] channel state after subscribe:', ch.state);
 
 /* Fallback doux au cas où (poll toutes les 10s si pas SUBSCRIBED) */
 setTimeout(() => {
@@ -236,4 +237,5 @@ supabase.auth.getUser().then(({ data, error }) => {
   if (error) console.error('[Auth] error:', error.message);
   else console.log('[Auth] user:', data?.user?.id);
 });
+
 
